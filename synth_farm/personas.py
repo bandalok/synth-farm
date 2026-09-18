@@ -23,6 +23,8 @@ from typing import Sequence
 
 import numpy as np
 
+from .apps import sample_app_affinity, sample_subscriptions
+
 
 @dataclass(frozen=True)
 class Archetype:
@@ -130,6 +132,11 @@ class Persona:
     completion_propensity: float  # multiplier on watch-completion probability
     mean_units: float
     genres: tuple[str, ...] = field(repr=False)
+    # Apps layer (CTV): which apps the persona subscribes to and how much
+    # they like each one. Defaulted so personas constructed without apps
+    # (e.g. in older tests) still work; choose_app falls back gracefully.
+    subscribed_apps: tuple[str, ...] = ()
+    app_affinity: np.ndarray | None = field(default=None, repr=False, compare=False)
 
     def top_genres(self, k: int = 3) -> list[tuple[str, float]]:
         """The persona's favourite genres, highest weight first."""
@@ -170,16 +177,29 @@ def _sample_persona(
     def beta(ab: tuple[float, float]) -> float:
         return float(rng.beta(ab[0], ab[1]))
 
+    # All pre-existing draws happen first, in their original order, so
+    # persona characteristics are bit-identical to before the apps layer.
+    sessions_per_week = int(rng.poisson(arch.sessions_lambda))
+    search_propensity = beta(arch.search_beta)
+    clickiness = beta(arch.click_beta)
+    completion_propensity = beta(arch.completion_beta)
+
+    # Apps layer: drawn LAST so established seeds are undisturbed.
+    subscribed = sample_subscriptions(rng)
+    affinity = sample_app_affinity(rng, subscribed)
+
     return Persona(
         persona_id=f"persona-{index:05d}",
         archetype=arch.name,
         taste=taste,
-        sessions_per_week=int(rng.poisson(arch.sessions_lambda)),
-        search_propensity=beta(arch.search_beta),
-        clickiness=beta(arch.click_beta),
-        completion_propensity=beta(arch.completion_beta),
+        sessions_per_week=sessions_per_week,
+        search_propensity=search_propensity,
+        clickiness=clickiness,
+        completion_propensity=completion_propensity,
         mean_units=arch.mean_units,
         genres=tuple(genres),
+        subscribed_apps=subscribed,
+        app_affinity=affinity,
     )
 
 
