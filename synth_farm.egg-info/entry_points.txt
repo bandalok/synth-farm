@@ -1,2 +1,0 @@
-[console_scripts]
-synth-farm = synth_farm.__main__:main
