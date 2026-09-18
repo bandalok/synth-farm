@@ -23,10 +23,11 @@ guessing.
 
 ## Demo
 
-What 500 synthetic viewers do on a CTV platform in 19 seconds — real farm
-output, zero jargon:
+One GIF: the codebase, the technical run, and the story it tells — what 500
+synthetic viewers do on a CTV platform in 19 seconds. Real farm output, zero
+jargon:
 
-![synth-farm demo: drama searches, app launches, genre engagement, and two personas](assets/demo-vp.gif)
+![synth-farm demo: the codebase, the technical run, and what 500 synthetic viewers do](assets/demo-merged.gif)
 
 ---
 
