@@ -41,6 +41,7 @@ from typing import Awaitable, Callable, Sequence
 import numpy as np
 
 from . import events as ev
+from .apps import choose_app
 from .catalog import ContentItem, PlatformAdapter, RankedItem
 from .config import Config
 from .personas import Persona
@@ -215,6 +216,14 @@ class SessionEngine:
         async def _emit(e: dict) -> None:
             happened.append(e)
             await self.emit(e)
+
+        # The viewer launches an app from the home screen before anything
+        # else happens in the session.
+        app_name = choose_app(rng, persona)
+        await _emit(_stamp(
+            ev.make_app_launch(persona.persona_id, session_id, app_name),
+            clock.tick(rng, 1, 3),
+        ))
 
         units = persona.sample_units(rng, self.config.max_units_per_session)
         for _ in range(units):
