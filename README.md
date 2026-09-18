@@ -21,6 +21,15 @@ guessing.
 
 ---
 
+## Demo
+
+What 500 synthetic viewers do on a CTV platform in 19 seconds — real farm
+output, zero jargon:
+
+![synth-farm demo: drama searches, app launches, genre engagement, and two personas](assets/demo-vp.gif)
+
+---
+
 ## Contents
 
 - [Why synthetic users?](#why-synthetic-users)
@@ -227,6 +236,24 @@ The mix is deliberate: loyalists give the model clean signal, surfers and
 critics give it noise and hard negatives. A model that only works on
 loyalists is a model that doesn't work.
 
+### The apps layer
+
+On a CTV platform, viewers don't live inside one app — they launch apps
+from the home screen. Every persona also draws:
+
+- **subscriptions** — which of the 8 platform apps they pay for
+  (`Netflix`, `Disney+`, `HBO Max`, `Hulu`, `Prime Video`, `Apple TV+`,
+  `Peacock`, `Paramount+`), each included with probability scaled by the
+  app's popularity; everyone gets at least one,
+- **app affinity** — how much they like each subscribed app (Dirichlet,
+  sums to 1).
+
+Each session opens with an `app_launch` event naming the app the persona
+picked (proportional to affinity). The rest of the session — search,
+browse, clicks, watch — is unchanged: the catalog is treated as the
+platform's aggregated content. This gives you a second cold-start axis
+for free: a brand-new app with zero behavioral data.
+
 ---
 
 ## The event schema
@@ -246,6 +273,7 @@ Every event is a JSON object with these common fields:
 
 | Type | Extra fields | Meaning |
 |---|---|---|
+| `app_launch` | `app_name` | session opened: the viewer launched an app (e.g. `Netflix`) from the home screen |
 | `impression` | `item_ids[]`, `ranks[]`, `slate_id`, `surface` (`home`/`search`), `query`?, `algorithm` | a slate was shown; every shown item and its rank |
 | `click` | `item_id`, `rank`, `slate_id`, `surface`, `query`? | persona clicked a tile |
 | `play` | `item_id`, `position_sec` | playback started |
