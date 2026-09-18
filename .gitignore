@@ -1,0 +1,21 @@
+# local secrets / tuning
+.env
+
+# generated outputs
+*.jsonl
+*.db
+*.sqlite
+*.sqlite3
+briefs/
+
+# python
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
