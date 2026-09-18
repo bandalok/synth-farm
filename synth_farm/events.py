@@ -4,7 +4,7 @@ Every event the farm emits follows this schema::
 
     {
       "event_id":   "<uuid4 hex>",
-      "type":       "search" | "impression" | "click" | "play"
+      "type":       "app_launch" | "search" | "impression" | "click" | "play"
                     | "quartile" | "complete" | "abandon",
       "synthetic":  true,                 # ALWAYS true. Non-negotiable.
       "persona_id": "persona-00042",
@@ -14,6 +14,9 @@ Every event the farm emits follows this schema::
     }
 
 Per-type fields:
+
+* ``app_launch`` — ``app_name`` (str). First event of every session: the
+  viewer opened an app (e.g. "Netflix") from the platform home screen.
 
 * ``search``     — ``query`` (str), ``num_results`` (int), ``slate_id``,
   ``slate_kind`` = ``"search"``
@@ -45,6 +48,7 @@ from typing import Any, Iterable
 
 
 EVENT_TYPES = (
+    "app_launch",
     "search",
     "impression",
     "click",
@@ -57,6 +61,7 @@ EVENT_TYPES = (
 _REQUIRED_COMMON = ("event_id", "type", "synthetic", "persona_id", "session_id", "ts")
 
 _PER_TYPE_REQUIRED: dict[str, tuple[str, ...]] = {
+    "app_launch": ("app_name",),
     "search": ("query", "num_results", "slate_id", "slate_kind"),
     "impression": ("slate_id", "slate_kind", "rank", "item_id"),
     "click": ("slate_id", "rank", "item_id"),
@@ -160,6 +165,15 @@ def make_abandon(
         watch_fraction=max(0.0, min(1.0, watch_fraction)),
         reason=reason,
     )
+    return e
+
+
+def make_app_launch(
+    persona_id: str, session_id: str, app_name: str
+) -> dict[str, Any]:
+    """A session's first event: the persona opened an app on the home screen."""
+    e = _base("app_launch", persona_id, session_id)
+    e.update(app_name=app_name)
     return e
 
 
