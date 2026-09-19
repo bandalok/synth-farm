@@ -81,12 +81,15 @@
     <h2>🎭 Master Agent</h2>
     <p class="sub">The puppet master. Give it a plain-English directive — <i>“NFL is starting, pivot some users to football for 7 days”</i> — and it spins up a time-limited campaign that steers the targeted agents' watching toward those genres. Campaigns decay automatically; <i>“stop campaigns”</i> kills them all. Targets: <i>some / half / all / 30% / cluster 3</i>.</p>
     <div class="search-row">
-      <input id="master-input" type="text" placeholder="Pivot some users to football for 7 days…" autocomplete="off">
+      <input id="master-input" type="text" placeholder="Pivot some users to football for 7 days… (or tap a preset below)" autocomplete="off">
       <button id="master-go" class="go-btn">Command</button>
     </div>
+    <div class="sugg-row" id="master-sugg"></div>
     <div class="hint" id="master-msg">No directive yet — try one above.</div>
     <h3 style="margin-top:10px">Live campaigns</h3>
     <div class="cards" id="campaigns"></div>
+    <label class="tl-toggle"><input type="checkbox" id="camp-timeline-toggle"> 📅 Campaign timeline</label>
+    <div id="camp-timeline" hidden></div>
     <h3 style="margin-top:14px">Master Agent log</h3>
     <div id="master-log" class="eventlog"></div>
   </section>
