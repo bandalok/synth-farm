@@ -19,10 +19,12 @@ from synth_farm.personas import generate_personas
 
 
 def test_apps_catalog_has_popularity_weights():
-    assert len(APPS) == len(APP_POPULARITY) == 8
+    assert len(APPS) == len(APP_POPULARITY) == 10
     assert abs(sum(APP_POPULARITY) - 1.0) < 1e-9
     assert all(p > 0 for p in APP_POPULARITY)
     assert "Netflix" in APPS and "Disney+" in APPS and "HBO Max" in APPS
+    assert "Tubi" in APPS  # free tier, added for the real TMDb catalog
+    assert "Plex" in APPS  # free tier + personal media, added Sep 2026
 
 
 def test_sample_subscriptions_is_deterministic(rng):
