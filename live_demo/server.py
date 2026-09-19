@@ -12,14 +12,17 @@ Then open http://localhost:8000 and press Play.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import queue
+import re
 import sys
 import threading
 import time
 import urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from types import SimpleNamespace
 
 import numpy as np
 
@@ -46,10 +49,147 @@ if REPO_ROOT is None:
     sys.exit(1)
 sys.path.insert(0, REPO_ROOT)
 
-from synth_farm.config import Config
 from synth_farm.personas import generate_personas, ARCHETYPES
-from synth_farm.real_catalog import load_real_catalog
+from synth_farm.real_catalog import PROVIDER_APP_MAP
 from synth_farm.collections import score_titles
+
+
+# ----------------------------------------------------------------------------
+# 30-genre taste taxonomy
+#
+# TMDb's native genres plus derived sub-genres (anime, k-drama, true-crime,
+# superhero, sitcom, ...) detected from title/overview/language signals.
+# Every one of the 30 has at least one title in the 117-title catalog.
+# ----------------------------------------------------------------------------
+GENRES30 = [
+    "action", "adventure", "animation", "comedy", "crime", "documentary",
+    "drama", "family", "fantasy", "horror", "music", "mystery",
+    "romance", "sci-fi", "thriller", "war", "kids", "reality-tv",
+    "superhero", "anime", "k-drama", "true-crime", "musical", "sports",
+    "martial-arts", "romcom", "space", "supernatural", "sitcom", "dystopia",
+]
+
+_GENRE_PRETTY = {
+    "sci-fi": "Sci-Fi", "k-drama": "K-Drama", "true-crime": "True Crime",
+    "reality-tv": "Reality TV", "romcom": "Rom-Com",
+}
+
+
+def genre_pretty(g: str) -> str:
+    return _GENRE_PRETTY.get(g, g.replace("-", " ").title())
+
+
+_TMDB_BASE = {
+    28: "action", 12: "adventure", 16: "animation", 35: "comedy",
+    80: "crime", 99: "documentary", 18: "drama", 10751: "family",
+    14: "fantasy", 27: "horror", 10402: "music",
+    9648: "mystery", 10749: "romance", 878: "sci-fi", 53: "thriller",
+    10752: "war", 10759: "action", 10762: "kids", 10764: "reality-tv",
+    10765: "sci-fi", 10766: "drama", 10768: "war", 10770: "drama",
+}
+
+
+def _derived_tags(entry: dict, gids: list) -> list:
+    t = f"{entry.get('title', '')} {entry.get('overview', '')}".lower()
+    lang = entry.get("original_language")
+    tags = []
+
+    def has(pat: str) -> bool:
+        return re.search(pat, t) is not None
+
+    if 28 in gids and has(r"super|batman|spider|avenger|wonder|thor|iron man|hulk|"
+                          r"captain america|marvel|x-men|superman|aquaman|shazam|"
+                          r"panther|deadpool|justice league|guardians|fantastic four|daredevil"):
+        tags.append("superhero")
+    if 16 in gids and lang == "ja":
+        tags.append("anime")
+    if 18 in gids and lang == "ko":
+        tags.append("k-drama")
+    if (80 in gids or 99 in gids) and has(r"murder|killer|heist|cartel|prison|"
+                                          r"missing|disappear|trial|detective|serial|mafia|"
+                                          r"drug|fraud|scam|kidnap|true crime|cold case"):
+        tags.append("true-crime")
+    if 10402 in gids or (has(r"\bmusical\b|broadway") and (18 in gids or 35 in gids)):
+        tags.append("musical")
+    if has(r"football|soccer|basketball|olympic|formula|racing|golf|tennis|"
+           r"\bsport\b|athlete|championship|wwe|ufc|boxing|world cup|marathon|nfl|nba|surfing"):
+        tags.append("sports")
+    if 10751 in gids and has(r"paw patrol|peppa|bluey|junior|children|kids\b|"
+                             r"cocomelon|minions|toy story"):
+        tags.append("kids")
+    if has(r"kung fu|martial arts|samurai|ninja|karate|wushu|muay thai"):
+        tags.append("martial-arts")
+    if 35 in gids and 10749 in gids:
+        tags.append("romcom")
+    if 878 in gids and has(r"\bspace\b|mars|alien|galaxy|astronaut|interstellar"):
+        tags.append("space")
+    if 27 in gids and has(r"zombie|vampire|ghost|haunted|possess|demon|slasher"):
+        tags.append("supernatural")
+    if 35 in gids and entry.get("media_type") == "tv" and not has(r"stand-up|standup|comedy special"):
+        tags.append("sitcom")
+    if has(r"dystopia|post-apocalyptic|apocalypse\b|end of the world"):
+        tags.append("dystopia")
+    return tags
+
+
+def _load_catalog_30(repo_root: str) -> SimpleNamespace:
+    """Load the raw TMDb fixture and tag every title in the 30-genre space."""
+    path = os.path.join(repo_root, "data", "catalog_tmdb.json")
+    entries = json.load(open(path))["items"]
+    items = []
+    for e in entries:
+        gids = e.get("genre_ids", [])
+        tags: list[str] = []
+        for gid in gids:
+            b = _TMDB_BASE.get(gid)
+            if b and b not in tags:
+                tags.append(b)
+        if 10759 in gids and "adventure" not in tags:
+            tags.append("adventure")
+        if 10765 in gids and "fantasy" not in tags:
+            tags.append("fantasy")
+        for d in _derived_tags(e, gids):
+            if d not in tags:
+                tags.append(d)
+        if not tags:
+            tags = ["drama"]
+        vec = np.zeros(len(GENRES30))
+        for t in tags:
+            vec[GENRES30.index(t)] = 1.0 / len(tags)
+        providers: list[str] = []
+        for pname in e.get("providers_flatrate", []):
+            app = PROVIDER_APP_MAP.get(pname)
+            if app and app not in providers:
+                providers.append(app)
+        media = e.get("media_type", "")
+        tid = int(e["tmdb_id"])
+        release = e.get("release_date") or ""
+        items.append(SimpleNamespace(
+            item_id=f"tmdb-{media}-{tid}",
+            title=str(e.get("title") or f"Untitled {tid}"),
+            primary_genre=tags[0],
+            genre_tags=tuple(tags),
+            genre_vector=vec,
+            popularity=float(e.get("popularity") or 0.0),
+            vote_average=float(e.get("vote_average") or 0.0),
+            year=int(release[:4]) if len(release) >= 4 and release[:4].isdigit() else 0,
+            release_date=str(e.get("release_date") or ""),
+            media_type=media,
+            poster_path=str(e.get("poster_path") or ""),
+            providers=tuple(providers),
+        ))
+    return SimpleNamespace(items=items)
+
+
+def _profile_for(persona_id: str) -> dict:
+    """Stable synthetic identity attributes, derived from the persona id."""
+    h = int(hashlib.md5(persona_id.encode()).hexdigest(), 16)
+    return {
+        "age_band": ["18–24", "25–34", "35–44", "45–54", "55+"][h % 5],
+        "region": ["West", "Southwest", "Midwest", "Northeast", "Southeast"][(h >> 3) % 5],
+        "primary_device": ["Roku", "Fire TV", "Apple TV", "Smart TV", "Chromecast"][(h >> 6) % 5],
+        "household_size": ["1", "2", "3", "4", "5+"][(h >> 9) % 5],
+    }
 
 
 # ----------------------------------------------------------------------------
@@ -63,15 +203,16 @@ class LiveSim:
         self.rng = np.random.default_rng(seed)
         self.lock = threading.RLock()
 
-        config = Config.from_env()
-        self.genres = list(config.genres)
+        self.genres = list(GENRES30)
         self.gidx = {g: i for i, g in enumerate(self.genres)}
         self.personas = generate_personas(n_agents, self.genres, seed=seed)
-        self.catalog = load_real_catalog()
+        self.catalog = _load_catalog_30(REPO_ROOT)
         self.by_id = {it.item_id: it for it in self.catalog.items}
-        self.by_genre: dict[str, list] = {}
+        self.by_tag: dict[str, list] = {}
         for it in self.catalog.items:
-            self.by_genre.setdefault(it.primary_genre, []).append(it)
+            for t in it.genre_tags:
+                self.by_tag.setdefault(t, []).append(it)
+        self.last_update: dict[str, dict] = {}
 
         # Cold start: near-uniform tastes. Behavior params stay distinct.
         self.tastes = self.rng.dirichlet(np.full(len(self.genres), 5.0), size=n_agents)
@@ -163,14 +304,25 @@ class LiveSim:
                 else:
                     g = self.genres[int(rng.choice(len(self.genres), p=mix))]
                     alpha, kind = 0.12, "play"
-                self.tastes[pi] = ((1 - alpha) * self.tastes[pi]
-                                   + alpha * np.eye(len(self.genres))[self.gidx[g]])
-                items = self.by_genre.get(g) or self.catalog.items
+                items = self.by_tag.get(g) or self.catalog.items
                 item = items[int(rng.integers(len(items)))]
+                before = float(self.tastes[pi][self.gidx[g]])
+                self.tastes[pi] = ((1 - alpha) * self.tastes[pi]
+                                   + alpha * item.genre_vector)
+                after = float(self.tastes[pi][self.gidx[g]])
                 ev = {"day": self.day + 1, "persona_id": p.persona_id,
                       "archetype": p.archetype, "type": kind,
                       "item_id": item.item_id, "title": item.title, "genre": g}
-                self.agent_events[p.persona_id].append(ev)
+                if kind == "search":
+                    ev["query"] = genre_pretty(g)
+                evs = self.agent_events[p.persona_id]
+                evs.append(ev)
+                if len(evs) > 400:
+                    del evs[:len(evs) - 400]
+                self.last_update[p.persona_id] = {
+                    "genre": g, "kind": kind, "title": item.title,
+                    "before": round(before, 4), "after": round(after, 4),
+                    "day": self.day + 1}
                 self.watched[p.persona_id].add(item.item_id)
                 day_counts[p.archetype][self.gidx[g]] += 1
                 day_total[self.gidx[g]] += 1
@@ -204,20 +356,31 @@ class LiveSim:
     # -- user interaction -------------------------------------------------------
     def click(self, persona_id: str, item_id: str) -> dict:
         with self.lock:
-            p = next(pp for pp in self.personas if pp.persona_id == persona_id)
-            item = self.by_id[item_id]
+            p = next((pp for pp in self.personas if pp.persona_id == persona_id), None)
+            item = self.by_id.get(item_id)
+            if p is None or item is None:
+                raise KeyError("unknown agent or title")
             pi = self.personas.index(p)
+            evs = self.agent_events[persona_id]
             for kind in ("impression", "click", "play"):
                 ev = {"day": self.day, "persona_id": persona_id,
                       "archetype": p.archetype, "type": kind,
                       "item_id": item_id, "title": item.title,
                       "genre": item.primary_genre, "live": True}
-                self.agent_events[persona_id].append(ev)
+                evs.append(ev)
                 self.events.append(ev)
+            if len(evs) > 400:
+                del evs[:len(evs) - 400]
             self.watched[persona_id].add(item_id)
             g = self.gidx[item.primary_genre]
+            before = float(self.tastes[pi][g])
             self.tastes[pi] = (0.85 * self.tastes[pi]
-                               + 0.15 * np.eye(len(self.genres))[g])
+                               + 0.15 * item.genre_vector)
+            after = float(self.tastes[pi][g])
+            self.last_update[persona_id] = {
+                "genre": item.primary_genre, "kind": "play",
+                "title": item.title, "before": round(before, 4),
+                "after": round(after, 4), "day": self.day}
             self._recluster()
             for q in list(self.subscribers):
                 try:
@@ -233,28 +396,38 @@ class LiveSim:
         taste = self.tastes[pi]
         evs = self.agent_events[p.persona_id]
         plays = [e for e in evs if e["type"] == "play"][-8:][::-1]
+        counts = {k: len([e for e in evs if e["type"] == k])
+                  for k in ("impression", "click", "play", "search")}
         return {
             "id": p.persona_id,
             "archetype": p.archetype,
             "archetype_pretty": p.archetype.replace("_", " ").title(),
+            "profile": _profile_for(p.persona_id),
             "taste": {g: round(float(w), 4) for g, w in zip(self.genres, taste)},
             "top_genre": self.genres[int(taste.argmax())],
             "sessions_per_week": p.sessions_per_week,
             "search_propensity": round(p.search_propensity, 3),
             "clickiness": round(p.clickiness, 3),
             "completion_propensity": round(p.completion_propensity, 3),
+            "mean_units": round(float(p.mean_units), 2),
             "subscribed_apps": list(p.subscribed_apps),
             "n_events": len(evs),
-            "n_plays": len([e for e in evs if e["type"] == "play"]),
+            "n_plays": counts["play"],
+            "event_counts": counts,
+            "last_taste_update": self.last_update.get(p.persona_id),
             "recent_plays": [{"title": e["title"], "genre": e["genre"],
                               "day": e["day"]} for e in plays],
+            "recent_events": [{"type": e["type"], "title": e["title"],
+                               "genre": e["genre"], "day": e["day"],
+                               "query": e.get("query")}
+                              for e in evs[-14:][::-1]],
             "cluster": int(self.labels[pi]),
             "home_screen": self.home_screen(p),
         }
 
     def _item_json(self, item, score=None):
         d = {"id": item.item_id, "title": item.title,
-             "genre": item.primary_genre,
+             "genre": genre_pretty(item.primary_genre),
              "poster": (f"https://image.tmdb.org/t/p/w342{item.poster_path}"
                         if item.poster_path else ""),
              "providers": list(item.providers)}
@@ -262,50 +435,133 @@ class LiveSim:
             d["score"] = round(score, 3)
         return d
 
-    def home_screen(self, p, n: int = 8) -> dict:
+    def _cluster_favorites(self, pi: int, unseen: set, n: int) -> list:
+        """Titles most played by the agent's own cluster members (live collab filtering)."""
+        lab = int(self.labels[pi])
+        counts: dict[str, int] = {}
+        for qi, q in enumerate(self.personas):
+            if int(self.labels[qi]) != lab:
+                continue
+            for e in self.agent_events[q.persona_id]:
+                if e["type"] == "play" and e["item_id"] in unseen:
+                    counts[e["item_id"]] = counts.get(e["item_id"], 0) + 1
+        ranked_ids = sorted(counts, key=lambda i: (-counts[i], i))
+        return [self.by_id[i] for i in ranked_ids[:n] if i in self.by_id]
+
+    def home_screen(self, p, n: int = 20) -> dict:
         pi = self.personas.index(p)
         taste = self.tastes[pi]
         seen = self.watched[p.persona_id]
         ranked = [(it, s) for it, s in score_titles(taste, self.catalog)
                   if it.item_id not in seen]
-        top_genre = self.genres[int(taste.argmax())]
+        ranked_items = [it for it, _ in ranked]
+        unseen = {it.item_id for it in ranked_items}
+
+        def fill(items: list, want: int = n, backup: list | None = None) -> list:
+            """Top up a short rail so every row is full (default backup: taste-ranked)."""
+            src = ranked_items if backup is None else backup
+            have = {it.item_id for it in items}
+            out = list(items)
+            for it in src:
+                if len(out) >= want:
+                    break
+                if it.item_id not in have:
+                    out.append(it)
+                    have.add(it.item_id)
+            return out[:want]
+
+        def pool(genre: str) -> list:
+            return [it for it in self.by_tag.get(genre, []) if it.item_id in unseen]
+
+        def j(items: list) -> list:
+            return [self._item_json(it) for it in items]
+
+        order = np.argsort(taste)[::-1]
+        g1, g2 = self.genres[order[0]], self.genres[order[1]]
         evs = self.agent_events[p.persona_id]
         last_play = next((e for e in reversed(evs) if e["type"] == "play"), None)
-        genre_items = [it for it in self.by_genre.get(top_genre, [])
-                       if it.item_id not in seen]
-        bw_items = []
-        bw_title = None
-        if last_play:
-            bw_title = last_play["title"]
-            bw_items = [it for it in self.by_genre.get(last_play["genre"], [])
-                        if it.item_id not in seen and it.item_id != last_play["item_id"]]
+
+        rails: list[tuple[str, str, list]] = []
+        rails.append(("Personalized for you",
+                      "ranked live against this agent's 30-genre taste vector",
+                      [self._item_json(it, s) for it, s in ranked[:n]]))
+        rails.append((f"Because of your interest in {genre_pretty(g1)}", "",
+                      j(fill(pool(g1)))))
         trending_idx = np.argsort(self.genre_plays)[::-1][:3]
         trending_genres = {self.genres[i] for i in trending_idx if self.genre_plays[i] > 0}
-        trending = [it for it, _ in ranked if it.primary_genre in trending_genres][:n] \
-            or [it for it, _ in ranked[:n]]
-        continue_watching = []
+        tr_pool = [it for it in ranked_items if it.primary_genre in trending_genres]
+        rails.append(("Trending now", "what the whole simulation is watching today",
+                      j(fill(tr_pool))))
+        new_pool = sorted(
+            (it for it in self.catalog.items
+             if it.item_id in unseen and it.release_date >= "2026-08-01"),
+            key=lambda it: -it.popularity)
+        rails.append(("New this month", "released in the last 60 days",
+                      j(fill(new_pool[:n]))))
+        if last_play and last_play["item_id"] in self.by_id:
+            bw_pool = [it for it in pool(last_play["genre"])
+                       if it.item_id != last_play["item_id"]]
+            rails.append((f"Because you watched {last_play['title']}", "",
+                          j(fill(bw_pool))))
+        else:
+            rails.append((f"More {genre_pretty(g2)}", "your second-favorite genre",
+                          j(fill(pool(g2)))))
+        by_pop = sorted((it for it in self.catalog.items if it.item_id in unseen),
+                        key=lambda it: -it.popularity)
+        rails.append(("Popular right now", "highest TMDb popularity today",
+                      j(fill(by_pop[:n]))))
+        top5 = {self.genres[i] for i in order[:5]}
+        detour_pool = sorted(
+            (it for it in self.catalog.items
+             if it.item_id in unseen and it.primary_genre not in top5),
+            key=lambda it: (-it.vote_average, -it.popularity))
+        rails.append(("Worth the detour",
+                      "top-rated picks outside your usual genres — variety beats fatigue",
+                      j(fill(detour_pool[:n], backup=detour_pool))))
+        cont: list = []
+        cont_ids: set = set()
         for e in reversed(evs):
             if e["type"] == "play" and e["item_id"] in self.by_id:
-                if self.by_id[e["item_id"]] not in continue_watching:
-                    continue_watching.append(self.by_id[e["item_id"]])
-            if len(continue_watching) >= n:
+                it = self.by_id[e["item_id"]]
+                if it.item_id not in cont_ids:
+                    cont.append(it)
+                    cont_ids.add(it.item_id)
+            if len(cont) >= n:
                 break
-        return {
-            "personalized": [self._item_json(it, s) for it, s in ranked[:n]],
-            "interest": {"genre": top_genre,
-                         "items": [self._item_json(it) for it in genre_items[:n]]},
-            "because_watched": {"title": bw_title,
-                                "items": [self._item_json(it) for it in bw_items[:n]]},
-            "trending": [self._item_json(it) for it in trending],
-            "continue": [self._item_json(it) for it in continue_watching],
-        }
+        rails.append(("Continue watching", "", j(fill(cont))))
+        by_vote = sorted((it for it in self.catalog.items if it.item_id in unseen),
+                         key=lambda it: (-it.vote_average, it.item_id))
+        rails.append(("Critics' picks", "highest rated of all time",
+                      j(fill(by_vote[:n]))))
+        fav = self._cluster_favorites(pi, unseen, n)
+        rails.append(("Viewers like you watch",
+                      f"most played in cluster {int(self.labels[pi])} today",
+                      j(fill(fav))))
+        hidden_pool = by_pop[len(by_pop) // 2:]
+        gems = sorted(hidden_pool,
+                      key=lambda it: -float(np.dot(taste, it.genre_vector)))
+        rails.append(("Hidden gems for you", "high taste match, low popularity",
+                      j(fill(gems[:n]))))
+        rails.append((f"Marathon weekend: {genre_pretty(g2)}", "",
+                      j(fill(pool(g2)))))
+        app = p.subscribed_apps[0] if p.subscribed_apps else None
+        if app:
+            app_pool = sorted(
+                (it for it in self.catalog.items
+                 if it.item_id in unseen and app in it.providers),
+                key=lambda it: -float(np.dot(taste, it.genre_vector)))
+            rails.append((f"On {app}", f"top picks from this agent's {app} subscription",
+                          j(fill(app_pool))))
+        return {"rails": [{"title": t, "why": w, "items": items}
+                          for t, w, items in rails]}
 
     def search(self, q: str, persona_id: str | None = None, n: int = 12) -> list[dict]:
         ql = q.lower().strip()
         taste = None
         if persona_id:
-            p = next(pp for pp in self.personas if pp.persona_id == persona_id)
-            taste = self.tastes[self.personas.index(p)]
+            p = next((pp for pp in self.personas if pp.persona_id == persona_id), None)
+            if p is not None:
+                taste = self.tastes[self.personas.index(p)]
         scored = []
         for it in self.catalog.items:
             hay = f"{it.title} {it.primary_genre}".lower()
@@ -356,6 +612,9 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def _error(self, code: int, message: str):
+        return self._json({"error": message}, code=code)
+
     def _static(self, name, ctype):
         import os
         path = os.path.join(STATIC_DIR, name)
@@ -389,6 +648,9 @@ class Handler(BaseHTTPRequestHandler):
                         "n_agents": sim.n_agents,
                         "clusters": sim.cluster_info(),
                         "total_events": sum(len(v) for v in sim.agent_events.values()),
+                        "genres": [{"key": g, "name": genre_pretty(g),
+                                    "titles": len(sim.by_tag.get(g, []))}
+                                   for g in sim.genres],
                     })
             if route == "/api/agents":
                 with sim.lock:
@@ -404,7 +666,9 @@ class Handler(BaseHTTPRequestHandler):
             if route == "/api/agent":
                 pid = qs.get("id", [None])[0]
                 with sim.lock:
-                    p = next(pp for pp in sim.personas if pp.persona_id == pid)
+                    p = next((pp for pp in sim.personas if pp.persona_id == pid), None)
+                    if p is None:
+                        return self._error(404, "no such agent")
                     return self._json(sim.agent_payload(p))
             if route == "/api/journey":
                 with sim.lock:
@@ -437,7 +701,10 @@ class Handler(BaseHTTPRequestHandler):
             length = int(self.headers.get("Content-Length", 0))
             data = json.loads(self.rfile.read(length) or b"{}")
             if url.path == "/api/click":
-                result = sim.click(data["agent_id"], data["item_id"])
+                try:
+                    result = sim.click(data["agent_id"], data["item_id"])
+                except KeyError:
+                    return self._error(404, "unknown agent or title")
                 return self._json(result)
             if url.path == "/api/control":
                 action = data.get("action")
