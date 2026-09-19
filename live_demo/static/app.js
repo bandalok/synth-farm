@@ -122,7 +122,13 @@ async function refreshStatus() {
     renderCampaigns(state.status.campaigns || []);
     renderMasterLog(state.status.master_log || []);
   }
-  if ($("tab-agents").classList.contains("active")) drawMasterPanel();
+  if ($("tab-agents").classList.contains("active")) {
+    drawMasterPanel();
+    // re-render the cards the moment campaign targeting changes (fire/expire)
+    const sig = JSON.stringify((state.status.campaigns || [])
+      .map((c) => [c.id, (c.targets || []).slice().sort((x, y) => x - y)]));
+    if (sig !== state.targetSig) await refreshAgents();
+  }
 }
 /* ---------- master agent ---------- */
 async function sendMaster() {
@@ -289,11 +295,24 @@ function drawMasterPanel() {
   const y = H - 16, pad = 16;
   const X = (i) => n === 1 ? mx : pad + (i * (W - 2 * pad)) / (n - 1);
   const targeted = new Set();
-  ((state.status && state.status.campaigns) || [])
-    .forEach((c) => (c.targets || []).forEach((i) => targeted.add(i)));
+  const liveCamps = ((state.status && state.status.campaigns) || []);
+  liveCamps.forEach((c) => (c.targets || []).forEach((i) => targeted.add(i)));
+  const hasLive = targeted.size > 0;
+  // banner: who is under live campaign energy right now
+  const note = $("master-target-note");
+  if (note) {
+    if (hasLive) {
+      note.innerHTML = `🎯 <b>${targeted.size}</b> agents under live campaign energy: ` +
+        liveCamps.map((c) => `${esc(c.genres.join(" + "))} <span style="opacity:.65">(${c.days_left}d left)</span>`).join(" · ");
+      note.style.display = "";
+    } else {
+      note.style.display = "none";
+    }
+  }
   // one string per agent: faint for all, bright for live campaign targets
   ctx.lineWidth = 1;
-  [["rgba(245,180,90,0.13)", false], ["rgba(245,180,90,0.45)", true]]
+  [[hasLive ? "rgba(245,180,90,0.05)" : "rgba(245,180,90,0.13)", false],
+   ["rgba(245,180,90,0.45)", true]]
     .forEach(([style, want]) => {
       ctx.strokeStyle = style;
       ctx.beginPath();
@@ -304,15 +323,24 @@ function drawMasterPanel() {
       });
       ctx.stroke();
     });
-  // agent dots, cluster-colored
+  // agent dots, cluster-colored — non-targets dim while a campaign is live
   state.agents.forEach((a, i) => {
     const x = X(i);
+    const isT = targeted.has(i);
+    ctx.globalAlpha = hasLive && !isT ? 0.25 : 1;
     ctx.fillStyle = CLUSTER_COLORS[a.cluster % 6];
-    ctx.beginPath(); ctx.arc(x, y, targeted.has(i) ? 3.6 : 2.8, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.arc(x, y, isT ? 3.6 : 2.8, 0, 7); ctx.fill();
+    if (isT) {
+      ctx.shadowBlur = 8; ctx.shadowColor = "#4ade80";
+      ctx.strokeStyle = "#4ade80"; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.arc(x, y, 6, 0, 7); ctx.stroke();
+      ctx.shadowBlur = 0;
+    }
     if (a.pivot) {
       ctx.strokeStyle = "#f5b45a"; ctx.lineWidth = 1.5;
       ctx.beginPath(); ctx.arc(x, y, 6.5, 0, 7); ctx.stroke();
     }
+    ctx.globalAlpha = 1;
   });
   // master node on top
   ctx.fillStyle = "#f5b45a";
@@ -363,11 +391,15 @@ async function refreshAgents() {
   const d = await api("/api/agents");
   state.agents = d.agents;
   $("agent-cards").innerHTML = d.agents.map((a) => `
-    <div class="card" data-id="${a.id}">
+    <div class="card${(a.targeted && a.targeted.length) ? " targeted" : ""}" data-id="${a.id}">
       <h3>${a.pivot ? "★ " : ""}${esc(a.archetype_pretty)}</h3>
-      <div class="meta">${a.id} · cluster <b style="color:${CLUSTER_COLORS[a.cluster % 6]}">${a.cluster}</b>${a.pivot ? ' · <span style="color:var(--amber)">★ Bollywood pivot</span>' : ""}</div>
+      <div class="meta">${a.id} · cluster <b style="color:${CLUSTER_COLORS[a.cluster % 6]}">${a.cluster}</b>${a.pivot ? ' · <span style="color:var(--amber)">★ Bollywood pivot</span>' : ""}${(a.targeted && a.targeted.length) ? ` · <span class="tgt">🎯 ${esc(a.targeted.join(" + "))} energy</span>` : ""}</div>
       <div class="meta">into <b>${esc(a.top_genre)}</b> · ${a.n_plays} plays</div>
     </div>`).join("");
+  // remember which campaign targeting the cards reflect, so the live poller
+  // can re-render them the moment a campaign starts or ends
+  state.targetSig = JSON.stringify(((state.status && state.status.campaigns) || [])
+    .map((c) => [c.id, (c.targets || []).slice().sort((x, y) => x - y)]));
   document.querySelectorAll("#agent-cards .card").forEach((c) =>
     c.addEventListener("click", () => openAgentPage(c.dataset.id)));
   const pick = $("home-agent-pick");
