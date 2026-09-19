@@ -16,6 +16,12 @@ Usage::
         Personas and the catalog are regenerated deterministically from
         --seed, so pass the same seed you ran with.
 
+    python -m synth_farm collections --personas 500 --days 7 --seed 7
+        Run the farm, then print each persona cluster's CTV home-screen
+        collections: top picks, trending now, continue watching.
+        Add --catalog real to rank real TMDb titles instead of synthetic ones
+        (viewers and events stay synthetic either way).
+
 All behavior is also tunable via SF_* environment variables (see
 .env.example and config.py).
 """
@@ -28,17 +34,28 @@ import sys
 
 from . import events as ev
 from .catalog import SyntheticCatalog, SyntheticPlatform
+from .collections import ARCHETYPE_NAMES, build_home_screen, pretty_name
 from .config import Config
 from .farm import Farm
 from .personas import generate_personas, population_report
+from .real_catalog import catalog_kind_names, load_real_catalog
 from .training import train_and_evaluate
 
 
-def _build_world(config: Config):
-    """Personas + catalog + platform for a run. Deterministic from seed."""
-    catalog = SyntheticCatalog(
-        config.genres, size=config.catalog_size, seed=config.seed + 1
-    )
+def _build_world(config: Config, catalog_kind: str = "synthetic"):
+    """Personas + catalog + platform for a run. Deterministic from seed.
+
+    ``catalog_kind`` is "synthetic" (built-in fake titles) or "real"
+    (offline TMDb fixture — real titles, synthetic viewers either way).
+    """
+    if catalog_kind == "real":
+        catalog = load_real_catalog(config.genres)
+    elif catalog_kind == "synthetic":
+        catalog = SyntheticCatalog(
+            config.genres, size=config.catalog_size, seed=config.seed + 1
+        )
+    else:
+        raise ValueError(f"unknown catalog kind: {catalog_kind!r}")
     personas = generate_personas(
         config.n_personas, config.genres, seed=config.seed
     )
@@ -147,6 +164,47 @@ def cmd_train(args: argparse.Namespace) -> int:
     return 0
 
 
+async def cmd_collections(args: argparse.Namespace) -> int:
+    config = Config.from_env()
+    config.n_personas = args.personas
+    config.sim_days = args.days
+    if args.seed is not None:
+        config.seed = args.seed
+
+    print("=== synth-farm collections ===")
+    print(f"config: {config.n_personas} personas x {config.sim_days} days, "
+          f"seed={config.seed}, catalog={args.catalog}")
+    catalog, personas, platform = _build_world(config, catalog_kind=args.catalog)
+    n_titles = len(catalog.items)
+    kind_word = "real TMDb titles" if args.catalog == "real" else "synthetic titles"
+    print(f"catalog: {n_titles} {kind_word} "
+          f"across {len(config.genres)} genres")
+
+    sink = ev.MemorySink()
+    farm = Farm(config, personas, platform, sink, seed=config.seed + 3)
+    await farm.run(progress=True)
+    events = sink.events
+    print(f"{len(events):,} events\n")
+
+    for archetype in ARCHETYPE_NAMES:
+        screen = build_home_screen(
+            archetype, personas, catalog, events, n=args.rail_length
+        )
+        print(f"##### {pretty_name(archetype)} — home screen #####")
+        for rail, items in screen.items():
+            print(f"== {rail} ==")
+            for i, item in enumerate(items, 1):
+                print(f"  {i}. {item.title} ({item.primary_genre})")
+            if not items:
+                print("  (empty)")
+        print()
+    print("Collections complete. " +
+          ("Every title above is a real TMDb title; viewers and events are synthetic."
+           if args.catalog == "real" else
+           "Every title above is synthetic."))
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="python -m synth_farm",
@@ -176,6 +234,17 @@ def build_parser() -> argparse.ArgumentParser:
                          help="persona count used for the run")
     p_train.add_argument("--catalog-size", type=int, default=None)
 
+    p_col = sub.add_parser("collections",
+                           help="per-cluster home-screen collections")
+    p_col.add_argument("--personas", type=int, default=500)
+    p_col.add_argument("--days", type=int, default=7)
+    p_col.add_argument("--seed", type=int, default=None)
+    p_col.add_argument("--rail-length", type=int, default=6,
+                       help="titles per rail")
+    p_col.add_argument("--catalog", choices=catalog_kind_names(),
+                       default="synthetic",
+                       help="synthetic titles (default) or real TMDb titles")
+
     # Demo flags (also work as: python -m synth_farm --demo --personas 100 …)
     parser.add_argument("--personas", type=int, default=300,
                         help="(demo) persona count")
@@ -193,6 +262,8 @@ def main(argv: list[str] | None = None) -> int:
         return asyncio.run(cmd_run(args))
     if args.command == "train":
         return cmd_train(args)
+    if args.command == "collections":
+        return asyncio.run(cmd_collections(args))
     parser.print_help()
     return 2
 
