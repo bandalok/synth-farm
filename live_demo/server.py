@@ -49,7 +49,7 @@ if REPO_ROOT is None:
     sys.exit(1)
 sys.path.insert(0, REPO_ROOT)
 
-from synth_farm.personas import generate_personas, ARCHETYPES
+from synth_farm.personas import generate_personas, ARCHETYPES, Persona
 from synth_farm.real_catalog import PROVIDER_APP_MAP
 from synth_farm.collections import score_titles
 
@@ -86,6 +86,7 @@ def genre_pretty(g: str) -> str:
 # Master Agent command vocabulary: everyday words -> taste dimensions.
 MASTER_GENRES = {
     "football": "Sports", "nfl": "Sports", "sports": "Sports",
+    "baseball": "Sports", "mlb": "Sports",
     "soccer": "Sports", "basketball": "Sports", "cricket": "Sports",
     "ipl": "Sports", "tennis": "Sports", "f1": "Sports",
     "bollywood": "Bollywood", "hindi": "Bollywood", "desi": "Bollywood",
@@ -217,11 +218,64 @@ def _profile_for(persona_id: str) -> dict:
     }
 
 
+# Archetype names the live sim tracks, including the two hand-built baseball
+# lovers below (they reuse the trend bookkeeping, not the sampled archetypes).
+DUO_ARCHETYPES = ("baseball_purist", "social_fan")
+_ALL_ARCHETYPE_NAMES = [a.name for a in ARCHETYPES] + list(DUO_ARCHETYPES)
+
+
+def _baseball_duo(genres: list[str]) -> list[Persona]:
+    """Two hand-tuned baseball lovers who feel different from each other.
+
+    - baseball_purist ("the seamhead"): lives for the game itself. Sports-heavy
+      with a documentary/history bench for the Ken Burns stuff. Watches a ton,
+      finishes everything, never searches.
+    - social_fan: here for the hangout. Sports plus comedy/reality — the
+      Friday-night crowd. Searches, samples, bails early.
+    """
+    n = len(genres)
+    gi = {g: i for i, g in enumerate(genres)}
+
+    def vec(spikes: dict[str, float], base: float = 0.006) -> np.ndarray:
+        v = np.full(n, base)
+        for g, w in spikes.items():
+            v[gi[g]] = w
+        return v / v.sum()
+
+    return [
+        Persona(
+            persona_id="persona-seamhead",
+            archetype="baseball_purist",
+            taste=vec({"Sports": 0.50, "Documentary": 0.14, "Drama": 0.08,
+                       "History": 0.05, "Biography": 0.04}),
+            sessions_per_week=9,
+            search_propensity=0.12,
+            clickiness=1.2,
+            completion_propensity=0.92,
+            mean_units=3.0,
+            genres=tuple(genres),
+        ),
+        Persona(
+            persona_id="persona-socialfan",
+            archetype="social_fan",
+            taste=vec({"Sports": 0.30, "Comedy": 0.14, "Reality": 0.10,
+                       "Drama": 0.08, "Romance": 0.05}),
+            sessions_per_week=4,
+            search_propensity=0.45,
+            clickiness=1.6,
+            completion_propensity=0.45,
+            mean_units=1.8,
+            genres=tuple(genres),
+        ),
+    ]
+
+
 # ----------------------------------------------------------------------------
 # Live simulation
 # ----------------------------------------------------------------------------
 class LiveSim:
     def __init__(self, n_agents: int = 240, seed: int = 7, tick_seconds: float = 1.5):
+        self.base_agents = n_agents  # requested count; reset() reuses this
         self.n_agents = n_agents
         self.seed = seed
         self.tick_seconds = tick_seconds
@@ -231,6 +285,9 @@ class LiveSim:
         self.genres = list(GRACENOTE_GENRES)
         self.gidx = {g: i for i, g in enumerate(self.genres)}
         self.personas = generate_personas(n_agents, self.genres, seed=seed)
+        # Two hand-built baseball lovers round out the population.
+        self.personas.extend(_baseball_duo(self.genres))
+        n_agents = self.n_agents = len(self.personas)
         self.catalog = _load_catalog_30(REPO_ROOT)
         self.by_id = {it.item_id: it for it in self.catalog.items}
         self.by_tag: dict[str, list] = {}
@@ -248,7 +305,9 @@ class LiveSim:
         self.tastes = self.rng.dirichlet(np.full(len(self.genres), 5.0), size=n_agents)
         # Agent #7 (index 6): the dedicated Bollywood pivot — a Bollywood-heavy
         # taste vector so the sim always has a desi audience to program for.
-        self.pivot_idx = 6 if n_agents > 6 else None
+        # (Threshold uses the requested count so the pivot never lands on the
+        # appended baseball duo.)
+        self.pivot_idx = 6 if self.base_agents > 6 else None
         if self.pivot_idx is not None:
             bw = np.full(len(self.genres), 0.015)
             bw[self.gidx["Bollywood"]] = 0.45
@@ -265,8 +324,8 @@ class LiveSim:
         self.day_genre_total = np.zeros(len(self.genres))  # genre counts, latest tick
         self.day_cluster_plays: dict[int, int] = {}        # cluster plays, latest tick
 
-        self.cluster_trend = {a.name: np.ones(len(self.genres)) / len(self.genres)
-                              for a in ARCHETYPES}
+        self.cluster_trend = {name: np.ones(len(self.genres)) / len(self.genres)
+                              for name in _ALL_ARCHETYPE_NAMES}
         self.global_trend = np.ones(len(self.genres)) / len(self.genres)
 
         # Emergent clusters via warm-started k-means on tastes.
@@ -341,7 +400,8 @@ class LiveSim:
     def tick(self):
         rng = self.rng
         bi = self.gidx["Bollywood"]
-        day_counts = {a.name: np.zeros(len(self.genres)) for a in ARCHETYPES}
+        day_counts = {name: np.zeros(len(self.genres))
+                      for name in _ALL_ARCHETYPE_NAMES}
         day_total = np.zeros(len(self.genres))
         day_cluster: dict[int, int] = {}
         feed = []
@@ -358,7 +418,10 @@ class LiveSim:
                 camp_bw = False
                 for camp in self.campaigns:
                     if pi in camp["targets"]:
-                        mix = (1 - camp["weight"]) * mix + camp["weight"] * camp["vec"]
+                        # Campaigns fade slowly and steadily: full strength on
+                        # day one, linearly down to zero on the last day.
+                        w = camp["weight"] * (camp["days_left"] / camp["days_total"])
+                        mix = (1 - w) * mix + w * camp["vec"]
                         mix = mix / mix.sum()
                         if "Bollywood" in camp["genres"]:
                             camp_bw = True
@@ -410,11 +473,11 @@ class LiveSim:
                     day_cluster[lab] = day_cluster.get(lab, 0) + 1
                 if len(feed) < 6 and rng.random() < 0.3:
                     feed.append(ev)
-        for a in ARCHETYPES:
-            tot = day_counts[a.name].sum()
+        for name in _ALL_ARCHETYPE_NAMES:
+            tot = day_counts[name].sum()
             if tot > 0:
-                self.cluster_trend[a.name] = (0.5 * self.cluster_trend[a.name]
-                                              + 0.5 * day_counts[a.name] / tot)
+                self.cluster_trend[name] = (0.5 * self.cluster_trend[name]
+                                            + 0.5 * day_counts[name] / tot)
         tot = day_total.sum()
         if tot > 0:
             self.genre_plays += day_total
@@ -845,7 +908,7 @@ class LiveSim:
 
     def reset(self, seed=None):
         with self.lock:
-            self.__init__(n_agents=self.n_agents, seed=seed or self.seed,
+            self.__init__(n_agents=self.base_agents, seed=seed or self.seed,
                           tick_seconds=self.tick_seconds)
 
     # -- master agent ---------------------------------------------------------
@@ -884,7 +947,8 @@ class LiveSim:
         return [{"id": c["id"], "text": c["text"], "genres": c["genres"],
                  "n_targets": len(c["targets"]), "targets": sorted(c["targets"]),
                  "weight": c["weight"],
-                 "days_left": c["days_left"], "created_day": c["created_day"]}
+                 "days_left": c["days_left"], "days_total": c["days_total"],
+                 "created_day": c["created_day"]}
                 for c in self.campaigns]
 
     def direct(self, text: str) -> dict:
@@ -912,7 +976,8 @@ class LiveSim:
             camp = {"id": self._camp_seq, "text": text,
                     "genres": parsed["genres"], "targets": targets,
                     "vec": vec, "weight": 0.45,
-                    "days_left": parsed["days"], "created_day": self.day}
+                    "days_left": parsed["days"], "days_total": parsed["days"],
+                    "created_day": self.day}
             self.campaigns.append(camp)
             who = (f"cluster {parsed['cluster']}" if parsed["cluster"] is not None
                    else f"{len(targets)} agents")
@@ -920,11 +985,15 @@ class LiveSim:
                    f"{', '.join(parsed['genres'])} for {parsed['days']} days.")
         self.master_log.append({"day": self.day, "text": msg})
         self.master_log = self.master_log[-30:]
-        self.events.append({"kind": "directed", "day": self.day, "text": msg})
+        n_targets = len(targets) if parsed["action"] == "start" else 0
+        ev_targets = sorted(targets) if parsed["action"] == "start" else []
+        self.events.append({"kind": "directed", "day": self.day, "text": msg,
+                            "n_targets": n_targets, "targets": ev_targets})
         self.events = self.events[-200:]
         for q in list(self.subscribers):
             try:
-                q.put_nowait({"kind": "directed", "day": self.day, "text": msg})
+                q.put_nowait({"kind": "directed", "day": self.day, "text": msg,
+                              "n_targets": n_targets, "targets": ev_targets})
             except queue.Full:
                 pass
         return {"ok": True, "message": msg,
