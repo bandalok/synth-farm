@@ -204,7 +204,7 @@ class SyntheticCatalog:
         prefixes, cores = _TITLE_POOLS.get(genre, (["Untitled"], ["Story"]))
         for _ in range(50):
             title = f"{rng.choice(prefixes)} {rng.choice(cores)}"
-            if rng.random() < 0.18:
+            if rng.random() < 0.18 and not title.startswith("The "):
                 title = "The " + title
             if title not in used:
                 used.add(title)
