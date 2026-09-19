@@ -55,85 +55,68 @@ from synth_farm.collections import score_titles
 
 
 # ----------------------------------------------------------------------------
-# 30-genre taste taxonomy
+# Gracenote genre taxonomy (video)
 #
-# TMDb's native genres plus derived sub-genres (anime, k-drama, true-crime,
-# superhero, sitcom, ...) detected from title/overview/language signals.
-# Every one of the 30 has at least one title in the 117-title catalog.
+# Source: Gracenote ScreenPlay Catalog Access docs (devportal.gracenote.com) —
+# the industry metadata taxonomy used across streaming/TV platforms.
+# Gracenote lists 29 video genres; 23 of them have titles in our 117-title
+# TMDb catalog, so the live taste model runs on those 23. Genres with zero
+# catalog coverage (Erotica, Ambient, Game-Show, News, Western, History)
+# are excluded rather than modeled empty.
 # ----------------------------------------------------------------------------
-GENRES30 = [
-    "action", "adventure", "animation", "comedy", "crime", "documentary",
-    "drama", "family", "fantasy", "horror", "music", "mystery",
-    "romance", "sci-fi", "thriller", "war", "kids", "reality-tv",
-    "superhero", "anime", "k-drama", "true-crime", "musical", "sports",
-    "martial-arts", "romcom", "space", "supernatural", "sitcom", "dystopia",
+GRACENOTE_GENRES = [
+    "Action", "Adventure", "Animation", "Biography", "Comedy", "Crime",
+    "Documentary", "Drama", "Family", "Fantasy", "Horror", "Music",
+    "Musical", "Mystery", "Reality", "Religious", "Romance",
+    "Romantic Comedy", "Science Fiction", "SitCom", "Sports", "Thriller",
+    "War",
 ]
-
-_GENRE_PRETTY = {
-    "sci-fi": "Sci-Fi", "k-drama": "K-Drama", "true-crime": "True Crime",
-    "reality-tv": "Reality TV", "romcom": "Rom-Com",
-}
 
 
 def genre_pretty(g: str) -> str:
-    return _GENRE_PRETTY.get(g, g.replace("-", " ").title())
+    # Gracenote names are already display-ready.
+    return g
 
 
 _TMDB_BASE = {
-    28: "action", 12: "adventure", 16: "animation", 35: "comedy",
-    80: "crime", 99: "documentary", 18: "drama", 10751: "family",
-    14: "fantasy", 27: "horror", 10402: "music",
-    9648: "mystery", 10749: "romance", 878: "sci-fi", 53: "thriller",
-    10752: "war", 10759: "action", 10762: "kids", 10764: "reality-tv",
-    10765: "sci-fi", 10766: "drama", 10768: "war", 10770: "drama",
+    28: "Action", 12: "Adventure", 16: "Animation", 35: "Comedy",
+    80: "Crime", 99: "Documentary", 18: "Drama", 10751: "Family",
+    14: "Fantasy", 27: "Horror", 10402: "Music",
+    9648: "Mystery", 10749: "Romance", 878: "Science Fiction",
+    53: "Thriller", 10752: "War",
+    10759: "Action", 10762: "Family", 10764: "Reality",
+    10765: "Science Fiction", 10766: "Drama", 10768: "War", 10770: "Drama",
 }
 
 
 def _derived_tags(entry: dict, gids: list) -> list:
+    """Gracenote genres not directly present in TMDb ids, detected from
+    title/overview signals: Romantic Comedy, SitCom, Musical, Sports,
+    Biography, Religious."""
     t = f"{entry.get('title', '')} {entry.get('overview', '')}".lower()
-    lang = entry.get("original_language")
     tags = []
 
     def has(pat: str) -> bool:
         return re.search(pat, t) is not None
 
-    if 28 in gids and has(r"super|batman|spider|avenger|wonder|thor|iron man|hulk|"
-                          r"captain america|marvel|x-men|superman|aquaman|shazam|"
-                          r"panther|deadpool|justice league|guardians|fantastic four|daredevil"):
-        tags.append("superhero")
-    if 16 in gids and lang == "ja":
-        tags.append("anime")
-    if 18 in gids and lang == "ko":
-        tags.append("k-drama")
-    if (80 in gids or 99 in gids) and has(r"murder|killer|heist|cartel|prison|"
-                                          r"missing|disappear|trial|detective|serial|mafia|"
-                                          r"drug|fraud|scam|kidnap|true crime|cold case"):
-        tags.append("true-crime")
+    if 35 in gids and 10749 in gids:
+        tags.append("Romantic Comedy")
+    if 35 in gids and entry.get("media_type") == "tv" and not has(r"stand-up|standup|comedy special"):
+        tags.append("SitCom")
     if 10402 in gids or (has(r"\bmusical\b|broadway") and (18 in gids or 35 in gids)):
-        tags.append("musical")
+        tags.append("Musical")
     if has(r"football|soccer|basketball|olympic|formula|racing|golf|tennis|"
            r"\bsport\b|athlete|championship|wwe|ufc|boxing|world cup|marathon|nfl|nba|surfing"):
-        tags.append("sports")
-    if 10751 in gids and has(r"paw patrol|peppa|bluey|junior|children|kids\b|"
-                             r"cocomelon|minions|toy story"):
-        tags.append("kids")
-    if has(r"kung fu|martial arts|samurai|ninja|karate|wushu|muay thai"):
-        tags.append("martial-arts")
-    if 35 in gids and 10749 in gids:
-        tags.append("romcom")
-    if 878 in gids and has(r"\bspace\b|mars|alien|galaxy|astronaut|interstellar"):
-        tags.append("space")
-    if 27 in gids and has(r"zombie|vampire|ghost|haunted|possess|demon|slasher"):
-        tags.append("supernatural")
-    if 35 in gids and entry.get("media_type") == "tv" and not has(r"stand-up|standup|comedy special"):
-        tags.append("sitcom")
-    if has(r"dystopia|post-apocalyptic|apocalypse\b|end of the world"):
-        tags.append("dystopia")
+        tags.append("Sports")
+    if has(r"based on a true story|biopic|life of |untold story"):
+        tags.append("Biography")
+    if has(r"\bfaith\b|jesus|christ|church|pastor|bible"):
+        tags.append("Religious")
     return tags
 
 
 def _load_catalog_30(repo_root: str) -> SimpleNamespace:
-    """Load the raw TMDb fixture and tag every title in the 30-genre space."""
+    """Load the raw TMDb fixture and tag every title in the Gracenote genre space."""
     path = os.path.join(repo_root, "data", "catalog_tmdb.json")
     entries = json.load(open(path))["items"]
     items = []
@@ -144,18 +127,18 @@ def _load_catalog_30(repo_root: str) -> SimpleNamespace:
             b = _TMDB_BASE.get(gid)
             if b and b not in tags:
                 tags.append(b)
-        if 10759 in gids and "adventure" not in tags:
-            tags.append("adventure")
-        if 10765 in gids and "fantasy" not in tags:
-            tags.append("fantasy")
+        if 10759 in gids and "Adventure" not in tags:
+            tags.append("Adventure")
+        if 10765 in gids and "Fantasy" not in tags:
+            tags.append("Fantasy")
         for d in _derived_tags(e, gids):
             if d not in tags:
                 tags.append(d)
         if not tags:
-            tags = ["drama"]
-        vec = np.zeros(len(GENRES30))
+            tags = ["Drama"]
+        vec = np.zeros(len(GRACENOTE_GENRES))
         for t in tags:
-            vec[GENRES30.index(t)] = 1.0 / len(tags)
+            vec[GRACENOTE_GENRES.index(t)] = 1.0 / len(tags)
         providers: list[str] = []
         for pname in e.get("providers_flatrate", []):
             app = PROVIDER_APP_MAP.get(pname)
@@ -203,7 +186,7 @@ class LiveSim:
         self.rng = np.random.default_rng(seed)
         self.lock = threading.RLock()
 
-        self.genres = list(GENRES30)
+        self.genres = list(GRACENOTE_GENRES)
         self.gidx = {g: i for i, g in enumerate(self.genres)}
         self.personas = generate_personas(n_agents, self.genres, seed=seed)
         self.catalog = _load_catalog_30(REPO_ROOT)
@@ -483,7 +466,7 @@ class LiveSim:
 
         rails: list[tuple[str, str, list]] = []
         rails.append(("Personalized for you",
-                      "ranked live against this agent's 30-genre taste vector",
+                      "ranked live against this agent's Gracenote-genre taste vector",
                       [self._item_json(it, s) for it, s in ranked[:n]]))
         rails.append((f"Because of your interest in {genre_pretty(g1)}", "",
                       j(fill(pool(g1)))))
