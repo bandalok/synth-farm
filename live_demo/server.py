@@ -83,8 +83,8 @@ def genre_pretty(g: str) -> str:
     return g
 
 
-# Director-agent command vocabulary: everyday words -> taste dimensions.
-DIRECTOR_GENRES = {
+# Master Agent command vocabulary: everyday words -> taste dimensions.
+MASTER_GENRES = {
     "football": "Sports", "nfl": "Sports", "sports": "Sports",
     "soccer": "Sports", "basketball": "Sports", "cricket": "Sports",
     "ipl": "Sports", "tennis": "Sports", "f1": "Sports",
@@ -237,6 +237,11 @@ class LiveSim:
         for it in self.catalog.items:
             for t in it.genre_tags:
                 self.by_tag.setdefault(t, []).append(it)
+        # Non-pivot agents mostly watch outside Bollywood: precompute the
+        # Bollywood-free pools so their histories stay clean.
+        self.by_tag_nobw: dict[str, list] = {
+            t: [it for it in items if "Bollywood" not in it.genre_tags]
+            for t, items in self.by_tag.items()}
         self.last_update: dict[str, dict] = {}
 
         # Cold start: near-uniform tastes. Behavior params stay distinct.
@@ -276,12 +281,12 @@ class LiveSim:
         self.subscribers: list[queue.Queue] = []
         self._stop = threading.Event()
 
-        # Director agent: natural-language pivot campaigns ("NFL is starting,
+        # Master Agent: natural-language pivot campaigns ("NFL is starting,
         # pivot some users to football"). Each campaign biases the watch
         # sampling of a fixed agent subset toward target genres for N days.
         self.campaigns: list[dict] = []
         self._camp_seq = 0
-        self.director_log: list[dict] = []
+        self.master_log: list[dict] = []
 
     # -- clustering / projection ------------------------------------------------
     def _recluster(self):
@@ -335,23 +340,28 @@ class LiveSim:
     # -- one simulated day ------------------------------------------------------
     def tick(self):
         rng = self.rng
+        bi = self.gidx["Bollywood"]
         day_counts = {a.name: np.zeros(len(self.genres)) for a in ARCHETYPES}
         day_total = np.zeros(len(self.genres))
         day_cluster: dict[int, int] = {}
         feed = []
         for pi, p in enumerate(self.personas):
             lab = int(self.labels[pi])
+            is_piv = self.pivot_idx is not None and pi == self.pivot_idx
             n_watch = int(rng.poisson(4.0) + 1)
             for _ in range(n_watch):
                 mix = (0.6 * self.tastes[pi] + 0.25 * self.cluster_trend[p.archetype]
                        + 0.15 * self.global_trend)
                 mix = mix / mix.sum()
-                # Director campaigns: pivot this agent's sampling toward the
+                # Master Agent campaigns: pivot this agent's sampling toward the
                 # campaign genres while the campaign is live.
+                camp_bw = False
                 for camp in self.campaigns:
                     if pi in camp["targets"]:
                         mix = (1 - camp["weight"]) * mix + camp["weight"] * camp["vec"]
                         mix = mix / mix.sum()
+                        if "Bollywood" in camp["genres"]:
+                            camp_bw = True
                 if rng.random() < p.search_propensity:
                     g = self.genres[int(rng.integers(len(self.genres)))]
                     alpha, kind = 0.05, "search"
@@ -359,10 +369,26 @@ class LiveSim:
                     g = self.genres[int(rng.choice(len(self.genres), p=mix))]
                     alpha, kind = 0.12, "play"
                 items = self.by_tag.get(g) or self.catalog.items
+                if not is_piv and not camp_bw:
+                    # Only agent #7 is the Bollywood guy: everyone else picks
+                    # outside Bollywood ~90% of the time (a tiny flavor slips
+                    # through). A Master Agent Bollywood campaign overrides this.
+                    nobw = self.by_tag_nobw.get(g)
+                    if nobw and rng.random() < 0.9:
+                        items = nobw
                 item = items[int(rng.integers(len(items)))]
                 before = float(self.tastes[pi][self.gidx[g]])
+                vec = np.asarray(item.genre_vector, dtype=float)
+                if not is_piv:
+                    # Don't let one casual Bollywood watch rewire a non-pivot
+                    # agent's taste: absorb little of its Bollywood axis.
+                    vec = vec.copy()
+                    vec[bi] *= 0.15
+                    s = vec.sum()
+                    if s > 0:
+                        vec /= s
                 self.tastes[pi] = ((1 - alpha) * self.tastes[pi]
-                                   + alpha * item.genre_vector)
+                                   + alpha * vec)
                 after = float(self.tastes[pi][self.gidx[g]])
                 ev = {"day": self.day + 1, "persona_id": p.persona_id,
                       "archetype": p.archetype, "type": kind,
@@ -515,7 +541,29 @@ class LiveSim:
         lab = int(self.labels[pi])
         taste = self.tastes[pi]
         seen = self.watched[p.persona_id]
-        ranked = [(it, s) for it, s in score_titles(taste, self.catalog)
+        is_pivot = self.pivot_idx is not None and pi == self.pivot_idx
+        # Only agent #7 is the Bollywood guy. Everyone else sees Bollywood
+        # titles at a steep ranking discount: a genuine blockbuster can still
+        # surface, but Bollywood never reads as a pattern on their rows.
+        BW_DISCOUNT = 0.3
+
+        def bwkey(key):
+            if is_pivot:
+                return key
+
+            def w(it):
+                v = key(it)
+                if "Bollywood" not in it.genre_tags:
+                    return v
+                if isinstance(v, tuple):
+                    return tuple(x * BW_DISCOUNT for x in v)
+                if isinstance(v, str):
+                    return ""  # sinks to the tail on reverse sort
+                return v * BW_DISCOUNT
+            return w
+
+        ranked = [(it, s * (BW_DISCOUNT if (not is_pivot and "Bollywood" in it.genre_tags) else 1.0))
+                  for it, s in score_titles(taste, self.catalog)
                   if it.item_id not in seen]
         ranked_items = [it for it, _ in ranked]
         unseen = {it.item_id for it in ranked_items}
@@ -532,12 +580,12 @@ class LiveSim:
         # to make every rail's tail an identical copy.
         score_of = {it.item_id: float(s) for it, s in ranked}
         unseen_items = [it for it in self.catalog.items if it.item_id in unseen]
-        k_taste = lambda it: score_of.get(it.item_id, 0.0)
-        k_pop = lambda it: it.popularity
-        k_vote = lambda it: it.vote_average
-        k_new = lambda it: it.release_date or ""
-        k_trend = lambda it: (float(self.genre_plays[self.gidx[it.primary_genre]]),
-                              it.popularity)
+        k_taste = bwkey(lambda it: score_of.get(it.item_id, 0.0))
+        k_pop = bwkey(lambda it: it.popularity)
+        k_vote = bwkey(lambda it: it.vote_average)
+        k_new = bwkey(lambda it: it.release_date or "")
+        k_trend = bwkey(lambda it: (float(self.genre_plays[self.gidx[it.primary_genre]]),
+                                    it.popularity))
 
         def row(pool_items: list, key, reverse: bool = True,
                 exclude: set = frozenset(), want: int = n) -> list:
@@ -608,8 +656,8 @@ class LiveSim:
         if last_play and last_play["item_id"] in self.by_id:
             anchor = np.asarray(self.by_id[last_play["item_id"]].genre_vector,
                                 dtype=float)
-            k_sim = lambda it: float(np.dot(
-                anchor, np.asarray(it.genre_vector, dtype=float)))
+            k_sim = bwkey(lambda it: float(np.dot(
+                anchor, np.asarray(it.genre_vector, dtype=float))))
             bw_pool = [it for it in pool(last_play["genre"])
                        if it.item_id != last_play["item_id"]]
             rails.append(("because_watched", f"Because you watched {last_play['title']}", "",
@@ -631,6 +679,11 @@ class LiveSim:
         rails.append(("critics", "Critics' picks", "highest rated of all time",
                       row(pop_all, k_vote)))
         fav = self._cluster_favorites(pi, unseen, n)
+        if not is_pivot:
+            # Cluster favorites are raw play counts — partition so Bollywood
+            # doesn't dominate a non-pivot agent's lookalike row.
+            fav = ([it for it in fav if "Bollywood" not in it.genre_tags]
+                   + [it for it in fav if "Bollywood" in it.genre_tags][:2])
         fav_ids = {it.item_id for it in fav}
         rails.append(("lookalike", "Viewers like you watch",
                       f"most played in cluster {lab} today",
@@ -744,7 +797,7 @@ class LiveSim:
             if pi in camp["targets"] and any(
                     vec[self.gidx[g]] > 0.25 for g in camp["genres"]):
                 signals.append(
-                    f"Director push — “{camp['text'][:70]}” is steering "
+                    f"🎭 Master Agent — “{camp['text'][:70]}” is steering "
                     f"viewers like you toward this")
                 break
 
@@ -795,14 +848,14 @@ class LiveSim:
             self.__init__(n_agents=self.n_agents, seed=seed or self.seed,
                           tick_seconds=self.tick_seconds)
 
-    # -- director agent ---------------------------------------------------------
+    # -- master agent ---------------------------------------------------------
     def parse_directive(self, text: str) -> dict:
         t = text.lower()
         if re.search(r"\b(stop|cancel|end|kill)\b", t) and "campaign" in t or \
            re.search(r"\b(stop|cancel|end)\s+(all\s+)?campaigns?\b", t):
             return {"action": "stop"}
         genres: list[str] = []
-        for kw, g in DIRECTOR_GENRES.items():
+        for kw, g in MASTER_GENRES.items():
             if re.search(r"\b" + re.escape(kw) + r"\b", t) and g not in genres:
                 genres.append(g)
         if not genres:
@@ -839,9 +892,9 @@ class LiveSim:
         if parsed["action"] == "stop":
             n = len(self.campaigns)
             self.campaigns.clear()
-            msg = f"Director stopped {n} campaign(s)."
+            msg = f"Master Agent stopped {n} campaign(s)."
         elif parsed["action"] == "unknown":
-            msg = ("Director didn't catch that — try “pivot some users to "
+            msg = ("Master Agent didn't catch that — try “pivot some users to "
                    "football for 7 days” or “stop campaigns”.")
         else:
             self._camp_seq += 1
@@ -862,10 +915,10 @@ class LiveSim:
             self.campaigns.append(camp)
             who = (f"cluster {parsed['cluster']}" if parsed["cluster"] is not None
                    else f"{len(targets)} agents")
-            msg = (f"🎬 Director: pivoting {who} toward "
+            msg = (f"🎭 Master Agent: pivoting {who} toward "
                    f"{', '.join(parsed['genres'])} for {parsed['days']} days.")
-        self.director_log.append({"day": self.day, "text": msg})
-        self.director_log = self.director_log[-30:]
+        self.master_log.append({"day": self.day, "text": msg})
+        self.master_log = self.master_log[-30:]
         self.events.append({"kind": "directed", "day": self.day, "text": msg})
         self.events = self.events[-200:]
         for q in list(self.subscribers):
@@ -875,7 +928,7 @@ class LiveSim:
                 pass
         return {"ok": True, "message": msg,
                 "campaigns": self._campaigns_json(),
-                "log": self.director_log[-10:]}
+                "log": self.master_log[-10:]}
 
 
 # ----------------------------------------------------------------------------
@@ -939,7 +992,7 @@ class Handler(BaseHTTPRequestHandler):
                                     "titles": len(sim.by_tag.get(g, []))}
                                    for g in sim.genres],
                         "campaigns": sim._campaigns_json(),
-                        "director_log": sim.director_log[-10:],
+                        "master_log": sim.master_log[-10:],
                     })
             if route == "/api/agents":
                 with sim.lock:
@@ -972,6 +1025,13 @@ class Handler(BaseHTTPRequestHandler):
                         "paths": paths,
                         "labels": [int(x) for x in sim.labels],
                         "clusters": sim.cluster_info(),
+                        # Master Agent puppet strings: which agents each live
+                        # campaign is currently pulling.
+                        "campaigns": [
+                            {"id": c["id"], "genres": c["genres"],
+                             "targets": sorted(c["targets"])}
+                            for c in sim.campaigns
+                        ],
                     })
             if route == "/api/search":
                 q = qs.get("q", [""])[0]
