@@ -172,6 +172,44 @@ def test_bollywood_stays_with_agent_seven():
     assert bw7 / total7 > 0.20, "agent #7 should stay Bollywood-heavy"
 
 
+def test_baseball_duo_are_distinct_sports_lovers():
+    s = LiveSim(n_agents=24, seed=7, tick_seconds=0.05)
+    assert s.n_agents == 26  # two hand-built agents join the population
+    duo = {p.persona_id: p for p in s.personas
+           if p.persona_id in ("persona-seamhead", "persona-socialfan")}
+    assert len(duo) == 2
+    a, b = duo["persona-seamhead"], duo["persona-socialfan"]
+    assert a.archetype != b.archetype
+    assert s.genres[int(a.taste.argmax())] == "Sports"
+    assert s.genres[int(b.taste.argmax())] == "Sports"
+    # they feel different: behavior and taste shape both differ
+    assert (a.sessions_per_week, a.search_propensity,
+            a.completion_propensity) != (b.sessions_per_week,
+                                         b.search_propensity,
+                                         b.completion_propensity)
+    assert abs(float(a.taste[s.gidx["Sports"]])
+               - float(b.taste[s.gidx["Sports"]])) > 0.1
+    s.reset()
+    assert s.n_agents == 26  # reset doesn't duplicate the duo
+
+
+def test_campaign_effect_fades_steadily():
+    s = LiveSim(n_agents=60, seed=7, tick_seconds=0.05)
+    s.direct("pivot all users to baseball for 7 days")
+    assert s.campaigns[0]["days_total"] == 7
+    si = s.gidx["Sports"]
+    shares = []
+    for _ in range(7):
+        with s.lock:
+            s.tick()
+        tot = s.day_genre_total.sum()
+        shares.append(s.day_genre_total[si] / tot)
+    # slow steady fade: early days beat late days, last day still a whisper
+    assert sum(shares[:2]) / 2 > sum(shares[-2:]) / 2
+    assert shares[-1] > 0.02
+    assert not s.campaigns  # expired after day 7
+
+
 def test_catalog_500_unique_with_required_keys():
     d = json.load(open(os.path.join(REPO, "data", "catalog_tmdb.json")))
     items = d["items"]
