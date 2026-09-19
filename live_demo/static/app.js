@@ -392,8 +392,8 @@ async function refreshAgents() {
   state.agents = d.agents;
   $("agent-cards").innerHTML = d.agents.map((a) => `
     <div class="card${(a.targeted && a.targeted.length) ? " targeted" : ""}" data-id="${a.id}">
-      <h3>${a.pivot ? "★ " : ""}${esc(a.archetype_pretty)}</h3>
-      <div class="meta">${a.id} · cluster <b style="color:${CLUSTER_COLORS[a.cluster % 6]}">${a.cluster}</b>${a.pivot ? ' · <span style="color:var(--amber)">★ Bollywood pivot</span>' : ""}${(a.targeted && a.targeted.length) ? ` · <span class="tgt">🎯 ${esc(a.targeted.join(" + "))} energy</span>` : ""}</div>
+      <h3>${esc(a.archetype_pretty)}</h3>
+      <div class="meta">${a.id} · cluster <b style="color:${CLUSTER_COLORS[a.cluster % 6]}">${a.cluster}</b>${pinBadge(a)}${(a.targeted && a.targeted.length) ? ` · <span class="tgt">🎯 ${esc(a.targeted.join(" + "))} energy</span>` : ""}</div>
       <div class="meta">into <b>${esc(a.top_genre)}</b> · ${a.n_plays} plays</div>
     </div>`).join("");
   // remember which campaign targeting the cards reflect, so the live poller
@@ -524,10 +524,24 @@ async function loadHome() {
   state.homeData = a;
   renderHome();
 }
+const GENRE_EMOJI = { Sports: "⚾", Bollywood: "🎬", Horror: "👻", Comedy: "😂",
+  Drama: "🎭", Documentary: "🎥", Reality: "📺", Music: "🎵", News: "📰",
+  Kids: "🧸", Family: "👨‍👩‍👧", Action: "💥", "Science Fiction": "🚀", Fantasy: "🐉",
+  Romance: "💕", Thriller: "🔪", Crime: "🚔", Mystery: "🔎", History: "🏛️",
+  Adventure: "🧭", Animation: "✨", Western: "🤠" };
+const PIN_EMOJI = { "Sports": "⚾", "Science Fiction": "🚀", "Bollywood": "★" };
+function pinBadge(a) {
+  if (a.pivot) return ` · <span style="color:var(--amber)">★ Bollywood pivot</span>`;
+  if (a.pin) return ` · <span class="pin">${PIN_EMOJI[a.pin] || "📌"} ${esc(a.pin)} anchor</span>`;
+  return "";
+}
 function tileHTML(t) {
   const prov = (t.providers || []).slice(0, 2).join(" · ");
+  const art = t.poster
+    ? `<img loading="lazy" src="${t.poster}" alt="">`
+    : `<div class="tile-noposter"><span>${GENRE_EMOJI[t.genre] || "🎞️"}</span></div>`;
   return `<div class="tile" data-id="${t.id}" title="${esc(t.title)}">
-    ${t.poster ? `<img loading="lazy" src="${t.poster}" alt="">` : `<div style="width:150px;height:225px;background:#000"></div>`}
+    ${art}
     <div class="ti"><b>${esc(t.title)}</b><span>${esc(t.genre)}</span>
     ${prov ? `<span class="prov">${esc(prov)}</span>` : ""}</div></div>`;
 }
