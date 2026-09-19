@@ -242,10 +242,10 @@ loyalists is a model that doesn't work.
 On a CTV platform, viewers don't live inside one app — they launch apps
 from the home screen. Every persona also draws:
 
-- **subscriptions** — which of the 8 platform apps they pay for
+- **subscriptions** — which of the 10 platform apps they pay for
   (`Netflix`, `Disney+`, `HBO Max`, `Hulu`, `Prime Video`, `Apple TV+`,
-  `Peacock`, `Paramount+`), each included with probability scaled by the
-  app's popularity; everyone gets at least one,
+  `Peacock`, `Paramount+`, `Tubi`, `Plex`), each included with probability
+  scaled by the app's popularity; everyone gets at least one,
 - **app affinity** — how much they like each subscribed app (Dirichlet,
   sums to 1).
 
@@ -254,6 +254,50 @@ picked (proportional to affinity). The rest of the session — search,
 browse, clicks, watch — is unchanged: the catalog is treated as the
 platform's aggregated content. This gives you a second cold-start axis
 for free: a brand-new app with zero behavioral data.
+
+### Per-cluster collections
+
+The same platform shows a different home screen to every cluster.
+`synth_farm/collections.py` builds each cluster's rails from farm output:
+
+- **Top picks for {cluster}** — the cluster's mean taste vector dotted
+  against every catalog title's genre vector (content-based ranking),
+- **Trending now** — the most-played titles across the whole audience,
+- **Continue watching** — titles the cluster started but never finished
+  (play event, no later complete).
+
+```bash
+python -m synth_farm collections --personas 500 --days 7 --seed 7
+```
+
+prints every cluster's home screen to the terminal. The three
+`assets/homescreen-*.png` mocks render the same data as a 10-foot CTV UI
+— hero banner plus rails — so you can see, tile for tile, how the home
+screen personalizes per cluster before any real viewer exists.
+
+### Real catalog (TMDb)
+
+By default the farm invents its own titles. Pass `--catalog real` and
+the same synthetic viewers browse **real trending titles** instead:
+
+```bash
+python -m synth_farm collections --personas 500 --days 7 --seed 7 --catalog real
+```
+
+The catalog comes from an offline fixture, `data/catalog_tmdb.json`
+(117 trending movies + series, pulled September 18, 2026): real titles,
+genres, years, poster art, and — the part that matters on a CTV platform —
+which of the 10 apps actually streams each title in the US. The home-screen
+mocks show real posters and "Streaming on Netflix, Hulu" lines; the hero
+banner names the provider(s) per title.
+
+The pipeline is deliberately one-way: a `tmdb` skill pulls trending
+titles + per-title US subscription providers once, by hand, into the
+fixture. Demos and tests only ever read the committed fixture — nothing
+touches the network at runtime. The viewers, sessions, and events stay
+synthetic (`synthetic=true` on every event); only the *catalog* is real.
+
+> This product uses the TMDb API but is not endorsed or certified by TMDb.
 
 ---
 
