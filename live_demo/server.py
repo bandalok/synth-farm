@@ -277,19 +277,33 @@ def _profile_for(persona_id: str) -> dict:
 
 
 # Archetype names the live sim tracks, including the two hand-built baseball
-# lovers below (they reuse the trend bookkeeping, not the sampled archetypes).
-DUO_ARCHETYPES = ("baseball_purist", "social_fan")
-_ALL_ARCHETYPE_NAMES = [a.name for a in ARCHETYPES] + list(DUO_ARCHETYPES)
+# Hand-pinned taste anchors (they reuse the trend bookkeeping, not the
+# sampled archetypes). Each pair shares a favorite genre but feels different.
+ANCHOR_ARCHETYPES = ("baseball_purist", "social_fan",
+                     "scifi_purist", "scifi_tourist")
+_ALL_ARCHETYPE_NAMES = [a.name for a in ARCHETYPES] + list(ANCHOR_ARCHETYPES)
+
+# persona_id -> pinned genre shown as a badge on the agent card.
+ANCHOR_PINS = {
+    "persona-seamhead": "Sports",
+    "persona-socialfan": "Sports",
+    "persona-voidwalker": "Science Fiction",
+    "persona-nebula": "Science Fiction",
+}
 
 
-def _baseball_duo(genres: list[str]) -> list[Persona]:
-    """Two hand-tuned baseball lovers who feel different from each other.
+def _anchor_personas(genres: list[str]) -> list[Persona]:
+    """Four hand-tuned taste anchors: two baseball lovers, two sci-fi lovers.
 
     - baseball_purist ("the seamhead"): lives for the game itself. Sports-heavy
       with a documentary/history bench for the Ken Burns stuff. Watches a ton,
       finishes everything, never searches.
     - social_fan: here for the hangout. Sports plus comedy/reality — the
       Friday-night crowd. Searches, samples, bails early.
+    - scifi_purist ("the voidwalker"): lives in deep space. Science Fiction
+      with a mystery/thriller bench. Binges whole series, finishes everything.
+    - scifi_tourist: here for the spectacle. Sci-fi plus comedy/action — the
+      blockbuster crowd. Clicks around, bails halfway.
     """
     n = len(genres)
     gi = {g: i for i, g in enumerate(genres)}
@@ -325,6 +339,31 @@ def _baseball_duo(genres: list[str]) -> list[Persona]:
             mean_units=1.8,
             genres=tuple(genres),
         ),
+        Persona(
+            persona_id="persona-voidwalker",
+            archetype="scifi_purist",
+            taste=vec({"Science Fiction": 0.52, "Mystery": 0.12,
+                       "Thriller": 0.08, "Documentary": 0.05,
+                       "Drama": 0.04}),
+            sessions_per_week=10,
+            search_propensity=0.10,
+            clickiness=1.1,
+            completion_propensity=0.95,
+            mean_units=3.4,
+            genres=tuple(genres),
+        ),
+        Persona(
+            persona_id="persona-nebula",
+            archetype="scifi_tourist",
+            taste=vec({"Science Fiction": 0.28, "Comedy": 0.13,
+                       "Action": 0.11, "Adventure": 0.08, "Fantasy": 0.05}),
+            sessions_per_week=5,
+            search_propensity=0.50,
+            clickiness=1.7,
+            completion_propensity=0.42,
+            mean_units=1.8,
+            genres=tuple(genres),
+        ),
     ]
 
 
@@ -344,7 +383,9 @@ class LiveSim:
         self.gidx = {g: i for i, g in enumerate(self.genres)}
         self.personas = generate_personas(n_agents, self.genres, seed=seed)
         # Two hand-built baseball lovers round out the population.
-        self.personas.extend(_baseball_duo(self.genres))
+        anchors = _anchor_personas(self.genres)
+        self.anchor_ids = [p.persona_id for p in anchors]
+        self.personas.extend(anchors)
         n_agents = self.n_agents = len(self.personas)
         self.catalog = _load_catalog_30(REPO_ROOT)
         self.by_id = {it.item_id: it for it in self.catalog.items}
@@ -363,8 +404,8 @@ class LiveSim:
         self.tastes = self.rng.dirichlet(np.full(len(self.genres), 5.0), size=n_agents)
         # Agent #7 (index 6): the dedicated Bollywood pivot — a Bollywood-heavy
         # taste vector so the sim always has a desi audience to program for.
-        # (Threshold uses the requested count so the pivot never lands on the
-        # appended baseball duo.)
+        # (Threshold uses the requested count so the pivot never lands on an
+        # appended anchor.)
         self.pivot_idx = 6 if self.base_agents > 6 else None
         if self.pivot_idx is not None:
             bw = np.full(len(self.genres), 0.015)
@@ -373,10 +414,10 @@ class LiveSim:
                          ("Comedy", 0.08)):
                 bw[self.gidx[g]] = w
             self.tastes[self.pivot_idx] = bw / bw.sum()
-        # The baseball duo keep their hand-tuned tastes instead of the cold
+        # The hand-pinned anchors keep their tuned tastes instead of the cold
         # start — the live sim reads self.tastes, not Persona.taste.
         for p in self.personas:
-            if p.persona_id in ("persona-seamhead", "persona-socialfan"):
+            if p.persona_id in self.anchor_ids:
                 self.tastes[self.personas.index(p)] = p.taste / p.taste.sum()
         self.day = 0
         self.paths = [self.tastes.copy()]
@@ -666,6 +707,16 @@ class LiveSim:
         pi = self.personas.index(p)
         lab = int(self.labels[pi])
         taste = self.tastes[pi]
+        # Live campaigns targeting this agent push the campaign genre up the
+        # rails too — same fade math as the watch sampling in tick(). The
+        # taste bars still show the agent's true taste; this only steers
+        # ranking while the campaign is live.
+        rank_taste = taste.copy()
+        for camp in self.campaigns:
+            if pi in camp["targets"]:
+                w = camp["weight"] * (camp["days_left"] / max(camp["days_total"], 1))
+                rank_taste = (1 - w) * rank_taste + w * camp["vec"]
+                rank_taste = rank_taste / rank_taste.sum()
         seen = self.watched[p.persona_id]
         is_pivot = self.pivot_idx is not None and pi == self.pivot_idx
         # Only agent #7 is the Bollywood guy. Everyone else sees Bollywood
@@ -689,7 +740,7 @@ class LiveSim:
             return w
 
         ranked = [(it, s * (BW_DISCOUNT if (not is_pivot and "Bollywood" in it.genre_tags) else 1.0))
-                  for it, s in score_titles(taste, self.catalog)
+                  for it, s in score_titles(rank_taste, self.catalog)
                   if it.item_id not in seen]
         ranked_items = [it for it, _ in ranked]
         unseen = {it.item_id for it in ranked_items}
@@ -732,7 +783,7 @@ class LiveSim:
                         break
             return [self._item_json(x) for x in picked]
 
-        order = np.argsort(taste)[::-1]
+        order = np.argsort(rank_taste)[::-1]
         g1, g2 = self.genres[order[0]], self.genres[order[1]]
         evs = self.agent_events[p.persona_id]
         last_play = next((e for e in reversed(evs) if e["type"] == "play"), None)
@@ -1139,6 +1190,8 @@ class Handler(BaseHTTPRequestHandler):
                                             if e["type"] == "play"]),
                             "cluster": int(sim.labels[pi]),
                             "pivot": pi == sim.pivot_idx,
+                            # hand-pinned taste anchor, e.g. "Sports"
+                            "pin": ANCHOR_PINS.get(p.persona_id),
                             # live campaign genres hitting this agent, if any
                             "targeted": sorted({g for c in sim.campaigns
                                                 for g in c["genres"]
