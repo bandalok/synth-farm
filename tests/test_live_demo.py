@@ -78,8 +78,8 @@ def test_master_agent_campaign_targets_and_expires():
     s = LiveSim(n_agents=60, seed=7, tick_seconds=0.05)
     out = s.direct("NFL is starting, let's pivot some users to watch football for 7 days")
     assert len(s.campaigns) == 1
-    assert len(s.campaigns[0]["targets"]) == 15  # 25% of 60
-    assert "pivoting 15 agents" in out["message"]
+    assert len(s.campaigns[0]["targets"]) == int(0.25 * s.n_agents)  # 25% of 64
+    assert f"pivoting {int(0.25 * s.n_agents)} agents" in out["message"]
     for _ in range(7):
         with s.lock:
             # one simulated day passes: tick() decrements days_left the same way
@@ -174,7 +174,7 @@ def test_bollywood_stays_with_agent_seven():
 
 def test_baseball_duo_are_distinct_sports_lovers():
     s = LiveSim(n_agents=24, seed=7, tick_seconds=0.05)
-    assert s.n_agents == 26  # two hand-built agents join the population
+    assert s.n_agents == 28  # four hand-built anchors join the population
     duo = {p.persona_id: p for p in s.personas
            if p.persona_id in ("persona-seamhead", "persona-socialfan")}
     assert len(duo) == 2
@@ -190,7 +190,31 @@ def test_baseball_duo_are_distinct_sports_lovers():
     assert abs(float(a.taste[s.gidx["Sports"]])
                - float(b.taste[s.gidx["Sports"]])) > 0.1
     s.reset()
-    assert s.n_agents == 26  # reset doesn't duplicate the duo
+    assert s.n_agents == 28  # reset doesn't duplicate the anchors
+
+
+def test_scifi_pair_are_distinct_scifi_lovers():
+    s = LiveSim(n_agents=24, seed=7, tick_seconds=0.05)
+    pair = {p.persona_id: p for p in s.personas
+            if p.persona_id in ("persona-voidwalker", "persona-nebula")}
+    assert len(pair) == 2
+    a, b = pair["persona-voidwalker"], pair["persona-nebula"]
+    assert a.archetype != b.archetype
+    assert s.genres[int(a.taste.argmax())] == "Science Fiction"
+    assert s.genres[int(b.taste.argmax())] == "Science Fiction"
+    # purist binges and finishes; tourist samples and bails
+    assert a.completion_propensity > 0.9 > b.completion_propensity
+    assert a.search_propensity < b.search_propensity
+    live_a = s.tastes[s.personas.index(a)]
+    assert s.genres[int(live_a.argmax())] == "Science Fiction"
+    titles = [t["title"] for r in s.home_screen(a)["rails"]
+              for t in r["items"]]
+    assert any(t in titles for t in ("Dune: Part Two", "Interstellar",
+                                     "The Matrix", "Project Hail Mary"))
+    # anchor pins are exposed for badges
+    from server import ANCHOR_PINS
+    assert ANCHOR_PINS["persona-voidwalker"] == "Science Fiction"
+    assert ANCHOR_PINS["persona-seamhead"] == "Sports"
 
 
 def test_campaign_effect_fades_steadily():
@@ -231,6 +255,16 @@ def test_baseball_duo_live_tastes_drive_home_screen():
         assert s.genres[int(live.argmax())] == "Sports"
     seam = next(pp for pp in s.personas if pp.persona_id == "persona-seamhead")
     titles = [t["title"] for r in s.home_screen(seam)["rails"]
+              for t in r["items"]]
+    assert any(t in mlb_titles for t in titles)
+
+
+def test_campaign_pushes_genre_onto_targeted_home_screen():
+    s = LiveSim(n_agents=24, seed=7, tick_seconds=0.05)
+    s.direct("blast everyone to baseball for 7 days")
+    tgt = sorted(s.campaigns[0]["targets"])[0]
+    mlb_titles = {"Moneyball", "Field of Dreams", "42", "Fastball"}
+    titles = [t["title"] for r in s.home_screen(s.personas[tgt])["rails"]
               for t in r["items"]]
     assert any(t in mlb_titles for t in titles)
 
