@@ -33,17 +33,21 @@ which is already in `requirements.txt`. Works on Python 3.9+.
 
 ## What's live
 
-- **30-genre taste model** — TMDb's native genres plus derived sub-genres
-  (anime, k-drama, true-crime, superhero, sitcom, …) detected from title /
-  language signals. Every genre has real catalog titles behind it.
+- **Gracenote genre taste model** — the industry metadata taxonomy (Gracenote
+  ScreenPlay): 23 of Gracenote's 29 video genres have titles in our 117-title
+  TMDb catalog (Action … Science Fiction, Romantic Comedy, SitCom, …), so the
+  live model runs on those 23. Zero-coverage genres (Erotica, Ambient,
+  Game-Show, News, Western, History) are excluded rather than modeled empty.
 - **Clusters tab** — six taste clusters recomputed from the agents' actual
   taste vectors every simulated day. Sizes shift as the sim runs.
 - **Agents tab** — click any agent to open its **data-model page**: identity
-  captured at signup, behavioral DNA inferred from usage, the live 30-genre
-  taste vector, a "how data is collected" pipeline (observe → learn → cluster
-  → rank), the event taxonomy with live counts, and a live event stream.
+  captured at signup, behavioral DNA inferred from usage, the live
+  Gracenote-genre taste vector, a "how data is collected" pipeline
+  (observe → learn → cluster → rank), the event taxonomy with live counts,
+  and a live event stream.
 - **Home Screen tab** — 13 collections of 20 titles, ranked live against the
-  selected agent's *current* 30-genre taste vector (`collections.score_titles`).
+  selected agent's *current* Gracenote-genre taste vector
+  (`collections.score_titles`).
   Taste rails up top, then trending / new / popular, a deliberate "Worth the
   detour" rail of top-rated picks outside the agent's usual genres (variety
   beats fatigue), and lookalike picks from the agent's cluster.
