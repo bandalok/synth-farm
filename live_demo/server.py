@@ -55,21 +55,21 @@ from synth_farm.collections import score_titles
 
 
 # ----------------------------------------------------------------------------
-# Gracenote genre taxonomy (video)
+# Gracenote genre taxonomy (video) — the complete list.
 #
 # Source: Gracenote ScreenPlay Catalog Access docs (devportal.gracenote.com) —
 # the industry metadata taxonomy used across streaming/TV platforms.
-# Gracenote lists 29 video genres; 23 of them have titles in our 117-title
-# TMDb catalog, so the live taste model runs on those 23. Genres with zero
-# catalog coverage (Erotica, Ambient, Game-Show, News, Western, History)
-# are excluded rather than modeled empty.
+# All 29 Gracenote video genres are modeled as taste dimensions, exactly as
+# Gracenote provides them. Six have no titles in our 117-title TMDb catalog
+# (Ambient, Erotica, Game-Show, History, News, Western) — they stay in the
+# taxonomy at ~zero weight rather than being cut.
 # ----------------------------------------------------------------------------
 GRACENOTE_GENRES = [
-    "Action", "Adventure", "Animation", "Biography", "Comedy", "Crime",
-    "Documentary", "Drama", "Family", "Fantasy", "Horror", "Music",
-    "Musical", "Mystery", "Reality", "Religious", "Romance",
-    "Romantic Comedy", "Science Fiction", "SitCom", "Sports", "Thriller",
-    "War",
+    "Action", "Adventure", "Ambient", "Animation", "Biography", "Comedy",
+    "Crime", "Documentary", "Drama", "Erotica", "Family", "Fantasy",
+    "Game-Show", "History", "Horror", "Music", "Musical", "Mystery",
+    "News", "Reality", "Religious", "Romance", "Romantic Comedy",
+    "Science Fiction", "SitCom", "Sports", "Thriller", "War", "Western",
 ]
 
 
@@ -211,7 +211,7 @@ class LiveSim:
         self.global_trend = np.ones(len(self.genres)) / len(self.genres)
 
         # Emergent clusters via warm-started k-means on tastes.
-        self.k = 6
+        self.k = 20
         self.centroids = self.tastes[self.rng.choice(n_agents, self.k, replace=False)]
         self.labels = np.zeros(n_agents, dtype=int)
         self._recluster()
@@ -228,7 +228,9 @@ class LiveSim:
             d2 = ((self.tastes[:, None, :] - self.centroids[None, :, :]) ** 2).sum(-1)
             lab = d2.argmin(1)
             new = np.array([self.tastes[lab == k].mean(0) if (lab == k).any()
-                            else self.centroids[k] for k in range(self.k)])
+                            # reseed dead clusters on a random agent's taste
+                            else self.tastes[self.rng.integers(len(self.tastes))]
+                            for k in range(self.k)])
             if np.allclose(new, self.centroids):
                 break
             self.centroids = new
@@ -263,7 +265,7 @@ class LiveSim:
             c2 = self._project(self.centroids[k][None, :])[0]
             info.append({
                 "id": k,
-                "name": f"{top.title()} cluster",
+                "name": f"{top.title()} #{k}",
                 "top_genre": top,
                 "size": int((self.labels == k).sum()),
             })
@@ -629,6 +631,7 @@ class Handler(BaseHTTPRequestHandler):
                         "day": sim.day, "running": sim.running,
                         "tick_seconds": sim.tick_seconds,
                         "n_agents": sim.n_agents,
+                        "n_clusters": sim.k,
                         "clusters": sim.cluster_info(),
                         "total_events": sum(len(v) for v in sim.agent_events.values()),
                         "genres": [{"key": g, "name": genre_pretty(g),
