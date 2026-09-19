@@ -29,6 +29,19 @@ jargon:
 
 ![synth-farm demo: the codebase, the technical run, and what 500 synthetic viewers do](assets/demo-merged.gif)
 
+### 🔴 Live demo — the simulation, running in real time
+
+```bash
+.venv/bin/python live_demo/server.py
+# open http://localhost:8000 and press Play
+```
+
+240 agents execute live: every tick is a simulated day of watching and
+searching, tastes update, clusters form. Click a title and the running
+process records it and re-ranks that agent's rails on the spot. Full
+runbook in [`live_demo/README.md`](live_demo/README.md). No new
+dependencies — stdlib only.
+
 ---
 
 ## Contents
