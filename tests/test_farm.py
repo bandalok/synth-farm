@@ -89,3 +89,36 @@ def test_farm_scales_to_hundred_agents(genres, small_config):
     assert result.personas_run == 100
     assert result.events_emitted > 1000
     assert result.elapsed_s < 120
+
+
+def test_constructs_after_loop_cleared_py39_style(genres, small_config, monkeypatch):
+    """Regression: on Python 3.9, asyncio.Semaphore()/Event() grab the event
+    loop eagerly at construction, which raises "no current event loop" once
+    an earlier asyncio.run() has cleared the policy's loop. Farm pieces must
+    construct lazily so the suite passes on 3.9+."""
+    import asyncio.events
+
+    real_sem, real_event = asyncio.Semaphore, asyncio.Event
+
+    class StrictSemaphore(real_sem):
+        def __init__(self, *a, **k):
+            # Mimic 3.9's eager get_event_loop() at construction.
+            asyncio.events.get_event_loop_policy().get_event_loop()
+            super().__init__(*a, **k)
+
+    class StrictEvent(real_event):
+        def __init__(self, *a, **k):
+            asyncio.events.get_event_loop_policy().get_event_loop()
+            super().__init__(*a, **k)
+
+    monkeypatch.setattr(asyncio, "Semaphore", StrictSemaphore)
+    monkeypatch.setattr(asyncio, "Event", StrictEvent)
+
+    # Poison the policy exactly the way a completed asyncio.run() does.
+    asyncio.run(asyncio.sleep(0))
+
+    farm, sink = _farm(genres, small_config, n_personas=10, seed=777)
+    result = asyncio.run(farm.run(days=2, progress=False))
+    assert result.sessions_run > 0
+    assert result.events_emitted > 0
+    assert sink.events
