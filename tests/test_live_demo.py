@@ -210,6 +210,31 @@ def test_campaign_effect_fades_steadily():
     assert not s.campaigns  # expired after day 7
 
 
+def test_mlb_shelf_and_providers_on_every_title():
+    s = LiveSim(n_agents=24, seed=7, tick_seconds=0.05)
+    assert len(s.catalog.items) == 516  # 500 TMDb + 16 synthetic MLB
+    mlb = [it for it in s.catalog.items if it.item_id.startswith("tmdb-movie--")]
+    assert len(mlb) == 16
+    assert all("Sports" in it.genre_tags for it in mlb)
+    assert all(it.providers for it in s.catalog.items)
+    t = s._item_json(mlb[0])
+    assert len(t["providers"]) >= 1  # every tile shows where to watch
+
+
+def test_baseball_duo_live_tastes_drive_home_screen():
+    s = LiveSim(n_agents=24, seed=7, tick_seconds=0.05)
+    mlb_titles = {"Field of Dreams", "Moneyball", "42", "The Sandlot",
+                  "Bull Durham", "A League of Their Own", "Ken Burns: Baseball"}
+    for pid in ("persona-seamhead", "persona-socialfan"):
+        p = next(pp for pp in s.personas if pp.persona_id == pid)
+        live = s.tastes[s.personas.index(p)]
+        assert s.genres[int(live.argmax())] == "Sports"
+    seam = next(pp for pp in s.personas if pp.persona_id == "persona-seamhead")
+    titles = [t["title"] for r in s.home_screen(seam)["rails"]
+              for t in r["items"]]
+    assert any(t in mlb_titles for t in titles)
+
+
 def test_catalog_500_unique_with_required_keys():
     d = json.load(open(os.path.join(REPO, "data", "catalog_tmdb.json")))
     items = d["items"]
