@@ -152,8 +152,10 @@ def make_query(
     """
     words = intent.title.split()
     r = rng.random()
-    if r < 0.45 and len(words) >= 2:
-        # Title fragment: first word + chopped second word.
+    if r < 0.45 and len(words) >= 2 and len(words[1]) > 3:
+        # Title fragment: first word + chopped second word. (The length
+        # guard matters for real titles like "Land of Women": a 2-letter
+        # second word can't be chopped.)
         second = words[1]
         cut = max(3, int(rng.integers(3, len(second) + 1)))
         query = f"{words[0]} {second[:cut]}"
