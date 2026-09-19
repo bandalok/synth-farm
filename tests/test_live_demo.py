@@ -1,7 +1,7 @@
 """Tests for the live demo server expansion (live_demo/server.py).
 
 Covers the September 2026 expansion: Bollywood dimension + agent #7 pivot,
-director manager agent, recommendation explainer, per-rail orderings, and
+Master Agent, recommendation explainer, per-rail orderings, and
 the 500-title catalog.
 """
 
@@ -52,7 +52,7 @@ def test_hindi_titles_get_bollywood_weight(sim):
 
 # ---------- Director manager agent ----------
 
-def test_director_nfl_pivots_some_to_sports(sim):
+def test_master_agent_nfl_pivots_some_to_sports(sim):
     parsed = sim.parse_directive(
         "NFL is starting, let's pivot some users to watch football for 7 days")
     assert parsed["action"] == "start"
@@ -61,7 +61,7 @@ def test_director_nfl_pivots_some_to_sports(sim):
     assert parsed["days"] == 7
 
 
-def test_director_scope_words(sim):
+def test_master_agent_scope_words(sim):
     assert sim.parse_directive("pivot everyone to football")["coverage"] == 1.0
     assert sim.parse_directive("pivot half the users to football")["coverage"] == 0.5
     assert sim.parse_directive("pivot 10% of users to football")["coverage"] == 0.1
@@ -69,12 +69,12 @@ def test_director_scope_words(sim):
     assert sim.parse_directive("pivot some users to bollywood")["genres"] == ["Bollywood"]
 
 
-def test_director_stop_and_unknown(sim):
+def test_master_agent_stop_and_unknown(sim):
     assert sim.parse_directive("stop campaigns")["action"] == "stop"
     assert sim.parse_directive("make the sky purple")["action"] == "unknown"
 
 
-def test_director_campaign_targets_and_expires():
+def test_master_agent_campaign_targets_and_expires():
     s = LiveSim(n_agents=60, seed=7, tick_seconds=0.05)
     out = s.direct("NFL is starting, let's pivot some users to watch football for 7 days")
     assert len(s.campaigns) == 1
@@ -89,7 +89,7 @@ def test_director_campaign_targets_and_expires():
             s.campaigns = [c for c in s.campaigns if c["days_left"] > 0]
     assert s.campaigns == []
     s.direct("stop campaigns")
-    assert s.director_log  # log records activity
+    assert s.master_log  # log records activity
 
 
 # ---------- Recommendation explainer ----------
@@ -150,6 +150,27 @@ def test_because_watched_orders_by_similarity(sim):
 
 
 # ---------- Catalog ----------
+
+def test_bollywood_stays_with_agent_seven():
+    # Only agent #7 is the Bollywood guy: everyone else gets a tiny flavor,
+    # never a visible pattern; agent #7 stays Bollywood-heavy.
+    s = LiveSim(n_agents=60, seed=7, tick_seconds=0.05)
+    for _ in range(5):
+        with s.lock:
+            s.tick()
+    for idx in (0, 1, 2):
+        hs = s.home_screen(s.personas[idx])
+        total = sum(len(r["items"]) for r in hs["rails"])
+        bw = sum(1 for r in hs["rails"] for x in r["items"]
+                 if "Bollywood" in s.by_id[x["id"]].genre_tags)
+        assert bw / total < 0.08, f"agent #{idx + 1} sees {bw / total:.0%} Bollywood"
+        assert s.genres[int(s.tastes[idx].argmax())] != "Bollywood"
+    hs7 = s.home_screen(s.personas[6])
+    total7 = sum(len(r["items"]) for r in hs7["rails"])
+    bw7 = sum(1 for r in hs7["rails"] for x in r["items"]
+              if "Bollywood" in s.by_id[x["id"]].genre_tags)
+    assert bw7 / total7 > 0.20, "agent #7 should stay Bollywood-heavy"
+
 
 def test_catalog_500_unique_with_required_keys():
     d = json.load(open(os.path.join(REPO, "data", "catalog_tmdb.json")))
