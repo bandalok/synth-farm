@@ -54,7 +54,8 @@ which is already in `requirements.txt`. Works on Python 3.9+.
   `most` (60%), `all`/`everyone` (100%), explicit percentages, `cluster N`,
   and `for N days`. Campaigns fade slowly and steadily — full strength on day
   one, linearly down to a whisper on the last day — then expire automatically;
-  `stop campaigns` clears them. API: `POST /api/direct {"text": ...}`;
+  `stop campaigns` clears them. Live campaigns also push the campaign genre
+  onto the targeted agents' home-screen rails (same fade). API: `POST /api/direct {"text": ...}`;
   campaigns and the director log appear in `GET /api/status` and SSE
   `directed` events.
 - **Two hand-built baseball lovers** — `persona-seamhead` (Baseball Purist:
@@ -62,6 +63,12 @@ which is already in `requirements.txt`. Works on Python 3.9+.
   `persona-socialfan` (Social Fan: 37% Sports plus comedy/reality, searches
   and samples). Same favorite sport, different humans. Their hand-tuned
   tastes are written into the live taste array, not just the persona record.
+- **Two hand-built sci-fi lovers** — `persona-voidwalker` (Sci-Fi Purist:
+  55% Science Fiction, binges and finishes everything) and `persona-nebula`
+  (Sci-Fi Tourist: 35% Science Fiction plus comedy/action, clicks around and
+  bails halfway). Same favorite genre, different humans.
+- **Taste anchors are badged** — agent #7 keeps its ★ Bollywood pivot badge;
+  the four anchors show ⚾ Sports anchor / 🚀 Sci-Fi anchor on their cards.
 - **MLB shelf** — 16 baseball films and documentaries (Moneyball, Field of
   Dreams, 42, Ken Burns: Baseball, …) appended to the catalog at load time
   with negative TMDb ids, so the fixture file stays pristine.
