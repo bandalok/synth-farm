@@ -1,0 +1,2323 @@
+{
+ "source": "TMDb",
+ "note": "This product uses the TMDb API but is not endorsed or certified by TMDb.",
+ "region": "US",
+ "count": 117,
+ "items": [
+  {
+   "tmdb_id": 607833,
+   "media_type": "movie",
+   "title": "The Intern",
+   "original_language": "ko",
+   "genre_ids": [
+    18,
+    35
+   ],
+   "overview": "A story about what happens when  Seon-wu, the CEO of a fashion company who is more passionate than anyone when it comes to work, hires Ki-ho, who has a wealth of life experience, as a silver intern.",
+   "poster_path": "/2Xn8lgewO6FFmikz7eXFTmF9UhC.jpg",
+   "release_date": "2026-09-16",
+   "popularity": 4.2264,
+   "vote_average": 8.5,
+   "vote_count": 2,
+   "providers_flatrate": []
+  },
+  {
+   "tmdb_id": 687163,
+   "media_type": "movie",
+   "title": "Project Hail Mary",
+   "original_language": "en",
+   "genre_ids": [
+    878,
+    12
+   ],
+   "overview": "Science teacher Ryland Grace wakes up on a spaceship light years from home with no recollection of who he is or how he got there. As his memory returns, he begins to uncover his mission: solve the riddle of the mysterious substance causing the sun to die out. He must call on his scientific knowledge and unorthodox ideas to save everything on Earth from extinction.",
+   "poster_path": "/yihdXomYb5kTeSivtFndMy5iDmf.jpg",
+   "release_date": "2026-03-15",
+   "popularity": 93.8207,
+   "vote_average": 8.6,
+   "vote_count": 7826,
+   "providers_flatrate": [
+    "Amazon Prime Video",
+    "fuboTV",
+    "MGM+ Amazon Channel",
+    "Philo",
+    "MGM Plus Roku Premium Channel",
+    "MGM Plus",
+    "Amazon Prime Video with Ads"
+   ]
+  },
+  {
+   "tmdb_id": 860508,
+   "media_type": "movie",
+   "title": "The Whisper Man",
+   "original_language": "en",
+   "genre_ids": [
+    80,
+    18,
+    53
+   ],
+   "overview": "When his young son vanishes, a widower enlists help from his estranged father, a retired detective who put away the serial killer now linked to the case.",
+   "poster_path": "/ndRs5lADYm0PeVjuOxaMcInY0o2.jpg",
+   "release_date": "2026-08-27",
+   "popularity": 74.5985,
+   "vote_average": 6.81,
+   "vote_count": 711,
+   "providers_flatrate": [
+    "Netflix",
+    "Netflix Standard with Ads"
+   ]
+  },
+  {
+   "tmdb_id": 950028,
+   "media_type": "movie",
+   "title": "The Invite",
+   "original_language": "en",
+   "genre_ids": [
+    35,
+    18,
+    10749
+   ],
+   "overview": "Joe and Angela's marriage is on thin ice. When they invite their enigmatic upstairs neighbors for a dinner party, the night spirals into unexpected places. Have they reignited the spark or lit the match that burns it all down?",
+   "poster_path": "/b7Dr8Chzse8VagexAporUu2RtLx.jpg",
+   "release_date": "2026-06-25",
+   "popularity": 31.8516,
+   "vote_average": 7.275,
+   "vote_count": 541,
+   "providers_flatrate": []
+  },
+  {
+   "tmdb_id": 969681,
+   "media_type": "movie",
+   "title": "Spider-Man: Brand New Day",
+   "original_language": "en",
+   "genre_ids": [
+    878,
+    28,
+    12
+   ],
+   "overview": "Fighting crime full-time as Spider-Man in a world that doesn't remember him\u2014and the pressure of seeing his old friends move on without him\u2014sparks a change in Peter Parker he may not have the power to control. But that transformation might also be the only thing that can stop a shocking new threat to the city and those he loves - a powerful villain no one can even see.",
+   "poster_path": "/bjiS5ipwxb9JFy3XRRN4OAilSeX.jpg",
+   "release_date": "2026-07-29",
+   "popularity": 659.5404,
+   "vote_average": 7.849,
+   "vote_count": 2760,
+   "providers_flatrate": []
+  },
+  {
+   "tmdb_id": 1003596,
+   "media_type": "movie",
+   "title": "Avengers: Doomsday",
+   "original_language": "en",
+   "genre_ids": [
+    878,
+    28,
+    12
+   ],
+   "overview": "Beloved heroes from three distinct universes are set on a deadly collision course and face an existential threat unlike anything they've ever encountered.",
+   "poster_path": "/jzPwsojjFStf5lR5Nm07w2hH56G.jpg",
+   "release_date": "2026-12-16",
+   "popularity": 43.7441,
+   "vote_average": 0.0,
+   "vote_count": 0,
+   "providers_flatrate": []
+  },
+  {
+   "tmdb_id": 1058424,
+   "media_type": "movie",
+   "title": "Hope",
+   "original_language": "ko",
+   "genre_ids": [
+    878,
+    9648,
+    28
+   ],
+   "overview": "In the remote South Korean village of Hope Harbor, police chief Bum-seok and officer Sung-ae are called to investigate a mysterious creature wreaking havoc on the community. But all is not as it seems, and perceptions can be misleading. What begins as ignorance plants the seed of disaster, escalating through human conflict into a tragedy of cosmic proportions.",
+   "poster_path": "/1n37BJchWHLiSYQkuFxe5KjB951.jpg",
+   "release_date": "2026-07-15",
+   "popularity": 104.9859,
+   "vote_average": 7.362,
+   "vote_count": 76,
+   "providers_flatrate": []
+  },
+  {
+   "tmdb_id": 1081003,
+   "media_type": "movie",
+   "title": "Supergirl",
+   "original_language": "en",
+   "genre_ids": [
+    28,
+    12,
+    878
+   ],
+   "overview": "When an unexpected and ruthless adversary strikes too close to home, Kara Zor-El, aka Supergirl, reluctantly joins forces with an unlikely companion on an epic, interstellar journey of vengeance and justice.",
+   "poster_path": "/uhzRnTW4DM13UQBvZP3eVNzQTuz.jpg",
+   "release_date": "2026-06-24",
+   "popularity": 72.3058,
+   "vote_average": 6.685,
+   "vote_count": 2340,
+   "providers_flatrate": [
+    "HBO Max Amazon Channel",
+    "HBO Max"
+   ]
+  },
+  {
+   "tmdb_id": 1083381,
+   "media_type": "movie",
+   "title": "Backrooms",
+   "original_language": "en",
+   "genre_ids": [
+    27,
+    9648,
+    878
+   ],
+   "overview": "A strange doorway appears in the basement of a furniture showroom.",
+   "poster_path": "/rhGx6E3qRNMgj3i5su2oukNHwIQ.jpg",
+   "release_date": "2026-05-27",
+   "popularity": 83.6218,
+   "vote_average": 7.044,
+   "vote_count": 3316,
+   "providers_flatrate": []
+  },
+  {
+   "tmdb_id": 1084244,
+   "media_type": "movie",
+   "title": "Toy Story 5",
+   "original_language": "en",
+   "genre_ids": [
+    16,
+    10751,
+    35,
+    12
+   ],
+   "overview": "When Bonnie receives a Lilypad tablet as a gift and becomes obsessed, Buzz, Woody, Jessie and the rest of the gang's jobs become exponentially harder when they have to go head to head with the all-new threat to playtime.",
+   "poster_path": "/sfQtVlIHljToOwYjhe21KPGzZWK.jpg",
+   "release_date": "2026-06-17",
+   "popularity": 143.7689,
+   "vote_average": 8.355,
+   "vote_count": 2185,
+   "providers_flatrate": []
+  },
+  {
+   "tmdb_id": 1101383,
+   "media_type": "movie",
+   "title": "The End of Oak Street",
+   "original_language": "en",
+   "genre_ids": [
+    878,
+    9648,
+    53
+   ],
+   "overview": "After a mysterious cosmic event rips Oak Street from suburbia and transports their neighborhood to someplace unknown, the Platt family soon discovers that their very survival depends on them sticking together as they navigate their now unrecognizable surroundings.",
+   "poster_path": "/fYXqpgPmHMphSF2W30GbTeJVIa5.jpg",
+   "release_date": "2026-08-12",
+   "popularity": 467.2595,
+   "vote_average": 6.953,
+   "vote_count": 1110,
+   "providers_flatrate": []
+  },
+  {
+   "tmdb_id": 1101412,
+   "media_type": "movie",
+   "title": "Fall 2: Deadpoint",
+   "original_language": "en",
+   "genre_ids": [
+    53
+   ],
+   "overview": "On a perilous climb across Thailand's Mount Kwan, two climbers become trapped thousands of feet above the ground, where vertigo-inducing heights, sheer exposure, and impossible odds turn every moment into a fight for survival.",
+   "poster_path": "/fgSm5ylwiXbIHn8UbUXDjk9RRu4.jpg",
+   "release_date": "2026-09-01",
+   "popularity": 69.1488,
+   "vote_average": 6.811,
+   "vote_count": 37,
+   "providers_flatrate": []
+  },
+  {
+   "tmdb_id": 1108427,
+   "media_type": "movie",
+   "title": "Moana",
+   "original_language": "en",
+   "genre_ids": [
+    10751,
+    14,
+    35,
+    12
+   ],
+   "overview": "Teenage Moana answers the Ocean's call and, for the first time, voyages beyond the reef of her island of Motunui with infamous demigod Maui on an unforgettable journey to restore prosperity to her people.",
+   "poster_path": "/gaet1xQ2nxrG0V1Ep9T20ZMNEIC.jpg",
+   "release_date": "2026-07-08",
+   "popularity": 221.3946,
+   "vote_average": 7.325,
+   "vote_count": 690,
+   "providers_flatrate": []
+  },
+  {
+   "tmdb_id": 1124142,
+   "media_type": "movie",
+   "title": "The Rivals of Amziah King",
+   "original_language": "en",
+   "genre_ids": [
+    53,
+    80,
+    18
+   ],
+   "overview": "Deep within the backwoods of rural Oklahoma, charismatic and musically gifted Amziah King herds a bluegrass-playing band of misfits while overseeing the premier honey-making operation in town. When Amziah\u2019s estranged foster daughter unexpectedly returns, Amziah leaps at the possibility to renew connection and create a family business. But the honey game is ruthless, and Amziah\u2019s rivals threaten to destroy everything he has built.",
+   "poster_path": "/3iVDCDS1VwHIm95PjWEPwsfdhaf.jpg",
+   "release_date": "2026-08-13",
+   "popularity": 49.298,
+   "vote_average": 6.8,
+   "vote_count": 59,
+   "providers_flatrate": []
+  },
+  {
+   "tmdb_id": 1137844,
+   "media_type": "movie",
+   "title": "Mayday",
+   "original_language": "en",
+   "genre_ids": [
+    28,
+    35
+   ],
+   "overview": "When a U.S. Navy pilot on a top-secret mission during the Cold War gets trapped behind enemy lines, his only chance at survival is to form an alliance with an eccentric ex-KGB agent.",
+   "poster_path": "/hVXjX1jLZ1ljFSNGXpjJfbTUOa7.jpg",
+   "release_date": "2026-09-03",
+   "popularity": 128.5369,
+   "vote_average": 8.01,
+   "vote_count": 673,
+   "providers_flatrate": [
+    "Apple TV",
+    "Apple TV Amazon Channel"
+   ]
+  },
+  {
+   "tmdb_id": 1185806,
+   "media_type": "movie",
+   "title": "PAW Patrol: The Dino Movie",
+   "original_language": "en",
+   "genre_ids": [
+    16,
+    12,
+    10751,
+    14,
+    35
+   ],
+   "overview": "The Paw Patrol lands on a mysterious dinosaur island after a storm, where they meet Rex, a stranded pup. When Humdinger's reckless mining triggers a volcano, the team faces their biggest rescue mission yet to save the island.",
+   "poster_path": "/qnin56Syy5rbG7KCaxWY7SPuy6p.jpg",
+   "release_date": "2026-07-23",
+   "popularity": 90.7564,
+   "vote_average": 7.856,
+   "vote_count": 118,
+   "providers_flatrate": []
+  },
+  {
+   "tmdb_id": 1204680,
+   "media_type": "movie",
+   "title": "Coyote vs. Acme",
+   "original_language": "en",
+   "genre_ids": [
+    35,
+    12,
+    10751
+   ],
+   "overview": "After Acme products fail him one too many times in his dogged pursuit of the Roadrunner, Wile E. Coyote decides to hire a billboard lawyer to sue the Acme Corporation.",
+   "poster_path": "/kYDCl2y0VPvhT5eYWbMRInPoB03.jpg",
+   "release_date": "2026-08-20",
+   "popularity": 496.9094,
+   "vote_average": 7.6,
+   "vote_count": 444,
+   "providers_flatrate": []
+  },
+  {
+   "tmdb_id": 1212763,
+   "media_type": "movie",
+   "title": "Evil Dead Burn",
+   "original_language": "en",
+   "genre_ids": [
+    27
+   ],
+   "overview": "After her husband's abrupt death, Alice seeks solace with his remaining family \u2014 descendants of a leading researcher on demonic possession. As her in-laws transform one by one into creatures that feed on fear, she comes to discover that the vows she took in life survive even in death.",
+   "poster_path": "/uRxrNXQWkHoENm3nwVOZDYSCx2F.jpg",
+   "release_date": "2026-07-07",
+   "popularity": 56.5899,
+   "vote_average": 7.682,
+   "vote_count": 1542,
+   "providers_flatrate": []
+  },
+  {
+   "tmdb_id": 1228710,
+   "media_type": "movie",
+   "title": "The Mandalorian and Grogu",
+   "original_language": "en",
+   "genre_ids": [
+    28,
+    12,
+    878
+   ],
+   "overview": "The evil Empire has fallen, and Imperial warlords remain scattered throughout the galaxy. As the fledgling New Republic works to protect everything the Rebellion fought for, they have enlisted the help of legendary Mandalorian bounty hunter Din Djarin and his young apprentice Grogu.",
+   "poster_path": "/uwMKWjcNID0D9jjplsjkQS2OrB4.jpg",
+   "release_date": "2026-05-20",
+   "popularity": 79.5213,
+   "vote_average": 7.48,
+   "vote_count": 1655,
+   "providers_flatrate": [
+    "Disney Plus"
+   ]
+  },
+  {
+   "tmdb_id": 1228834,
+   "media_type": "movie",
+   "title": "The Fix",
+   "original_language": "en",
+   "genre_ids": [
+    28,
+    53
+   ],
+   "overview": "Disillusioned by the end of the war in Afghanistan, a group of disgraced, war-torn ex-CIA operatives set out to Tehran to take down a life-changing score.",
+   "poster_path": "/yopXjun3ICFfJci2ukcEzceZjUs.jpg",
+   "release_date": "2026-09-10",
+   "popularity": 50.5333,
+   "vote_average": 8.25,
+   "vote_count": 8,
+   "providers_flatrate": []
+  },
+  {
+   "tmdb_id": 1240889,
+   "media_type": "movie",
+   "title": "Teenage Sex and Death at Camp Miasma",
+   "original_language": "en",
+   "genre_ids": [
+    35,
+    27,
+    10749
+   ],
+   "overview": "After years of slapdash sequels, the Camp Miasma franchise is handed over to an enthusiastic young director for resurrection. But when she visits the original\u2019s star, a now-reclusive actress shrouded in mystery, the two women fall into a blood-soaked world of desire, fear, and delirium.",
+   "poster_path": "/nLsFnXifieSTqSeWxjXSS8RvaUZ.jpg",
+   "release_date": "2026-08-06",
+   "popularity": 44.2136,
+   "vote_average": 6.687,
+   "vote_count": 115,
+   "providers_flatrate": []
+  },
+  {
+   "tmdb_id": 1248832,
+   "media_type": "movie",
+   "title": "Digger",
+   "original_language": "en",
+   "genre_ids": [
+    35
+   ],
+   "overview": "The most powerful man in the world embarks on a frantic mission to prove he is humanity's savior before the disaster he's unleashed destroys everything.",
+   "poster_path": "/1ATXKrIPJyKNwnJ6lcG088Sa6zi.jpg",
+   "release_date": "2026-09-30",
+   "popularity": 21.4777,
+   "vote_average": 0.0,
+   "vote_count": 0,
+   "providers_flatrate": []
+  },
+  {
+   "tmdb_id": 1263337,
+   "media_type": "movie",
+   "title": "Heart of the Beast",
+   "original_language": "en",
+   "genre_ids": [
+    12,
+    53
+   ],
+   "overview": "After a harrowing plane crash, Special Forces officer James Belmont and his combat dog, Odin, find themselves stranded deep in the Alaskan wilderness. Together, they are forced into a brutal fight for survival against the elements.",
+   "poster_path": "/1ApfSA8JTqeha3GTFEY8syV4auq.jpg",
+   "release_date": "2026-09-19",
+   "popularity": 26.0598,
+   "vote_average": 10.0,
+   "vote_count": 2,
+   "providers_flatrate": []
+  },
+  {
+   "tmdb_id": 1273221,
+   "media_type": "movie",
+   "title": "Scary Movie",
+   "original_language": "en",
+   "genre_ids": [
+    35
+   ],
+   "overview": "Twenty-six years after outrunning a suspiciously familiar masked killer, the Core Four are back in the killer's crosshairs and no horror movie IP is safe.",
+   "poster_path": "/znHT8peERZRWG1ME3r0Db0EV8k8.jpg",
+   "release_date": "2026-06-03",
+   "popularity": 65.6852,
+   "vote_average": 6.389,
+   "vote_count": 1904,
+   "providers_flatrate": [
+    "Paramount Plus Premium",
+    "Paramount Plus Essential",
+    "Paramount+ Amazon Channel",
+    "Paramount+ Roku Premium Channel"
+   ]
+  },
+  {
+   "tmdb_id": 1275779,
+   "media_type": "movie",
+   "title": "Disclosure Day",
+   "original_language": "en",
+   "genre_ids": [
+    878,
+    53
+   ],
+   "overview": "A cybersecurity expert becomes a whistleblower after uncovering secrets about aliens, putting him on the run from a corporation. Meanwhile, a meteorologist experiencing strange phenomena joins forces with him to prove there's life beyond our understanding.",
+   "poster_path": "/AnJ8IQJI23hNpYXVNaythu061Ru.jpg",
+   "release_date": "2026-06-10",
+   "popularity": 83.5122,
+   "vote_average": 7.472,
+   "vote_count": 3361,
+   "providers_flatrate": []
+  },
+  {
+   "tmdb_id": 1280738,
+   "media_type": "movie",
+   "title": "The Furious",
+   "original_language": "zh",
+   "genre_ids": [
+    28,
+    80,
+    53
+   ],
+   "overview": "After a criminal network kidnaps Wang Wei's daughter and the corrupt police refuse to assist him, Wei sets out on his own to locate her. Navin, a tenacious journalist whose wife has mysteriously vanished, is his only ally. In this explosive martial arts showdown, the unlikely duo fights the kidnappers ruthlessly driven by a furious vengeance.",
+   "poster_path": "/ivQ1Z3lI1xWvAeGDHBw3CCYZDGJ.jpg",
+   "release_date": "2026-06-10",
+   "popularity": 47.6902,
+   "vote_average": 8.19,
+   "vote_count": 728,
+   "providers_flatrate": []
+  },
+  {
+   "tmdb_id": 1284465,
+   "media_type": "movie",
+   "title": "The Death of Robin Hood",
+   "original_language": "en",
+   "genre_ids": [
+    12,
+    18,
+    28
+   ],
+   "overview": "Grappling with his past after a life of crime and murder, Robin Hood finds himself gravely injured after a battle he thought would be his last. In the hands of a mysterious woman, he is offered a chance at salvation.",
+   "poster_path": "/13MmRwmG5NmaMfU8qNrtgGXisiD.jpg",
+   "release_date": "2026-06-18",
+   "popularity": 58.2076,
+   "vote_average": 6.224,
+   "vote_count": 312,
+   "providers_flatrate": []
+  },
+  {
+   "tmdb_id": 1291595,
+   "media_type": "movie",
+   "title": "Insidious: Out of the Further",
+   "original_language": "en",
+   "genre_ids": [
+    27,
+    53
+   ],
+   "overview": "Gemma, a young mother raising her daughter in the house she grew up in, discovers she can travel into The Further, where she possesses an ability to bring what lives there back to the real world.",
+   "poster_path": "/4tTrW9dXCByS5wt2pXVWb58zNjz.jpg",
+   "release_date": "2026-08-19",
+   "popularity": 46.9212,
+   "vote_average": 6.5,
+   "vote_count": 155,
+   "providers_flatrate": []
+  },
+  {
+   "tmdb_id": 1300968,
+   "media_type": "movie",
+   "title": "The Hunger Games: Sunrise on the Reaping",
+   "original_language": "en",
+   "genre_ids": [
+    878,
+    28,
+    12
+   ],
+   "overview": "Return to the world of Panem 24 years before the events of The Hunger Games, starting on the morning of the reaping of the 50th Hunger Games, also known as the Second Quarter Quell.",
+   "poster_path": "/ffJaYMtB6v1TrvkyhCOqwqCKm0o.jpg",
+   "release_date": "2026-11-18",
+   "popularity": 17.7363,
+   "vote_average": 0.0,
+   "vote_count": 0,
+   "providers_flatrate": []
+  },
+  {
+   "tmdb_id": 1302904,
+   "media_type": "movie",
+   "title": "Practical Magic 2",
+   "original_language": "en",
+   "genre_ids": [
+    10749,
+    14,
+    35
+   ],
+   "overview": "The Owens sisters must confront the dark curse that threatens to unravel their family once and for all.",
+   "poster_path": "/ogwQOLbCfncjvBhFb5l0OmQH8KC.jpg",
+   "release_date": "2026-09-09",
+   "popularity": 70.0029,
+   "vote_average": 6.031,
+   "vote_count": 64,
+   "providers_flatrate": []
+  },
+  {
+   "tmdb_id": 1315772,
+   "media_type": "movie",
+   "title": "Minions & Monsters",
+   "original_language": "en",
+   "genre_ids": [
+    12,
+    16,
+    35,
+    10751,
+    14
+   ],
+   "overview": "This is the rambunctious, ridiculous and totally true story of how the Minions conquered Hollywood, became movie stars, lost everything, unleashed monsters onto the world and then banded together to try and save the planet from the mayhem they had just created.",
+   "poster_path": "/4LwvU9SZc8QQzW1X1FAPhNbXnEU.jpg",
+   "release_date": "2026-06-24",
+   "popularity": 117.3038,
+   "vote_average": 7.549,
+   "vote_count": 1130,
+   "providers_flatrate": []
+  },
+  {
+   "tmdb_id": 1318467,
+   "media_type": "movie",
+   "title": "The Last Kiss",
+   "original_language": "en",
+   "genre_ids": [
+    27,
+    9648,
+    53
+   ],
+   "overview": "Laurel always imagined her first kiss would be a fairy tale. Instead, that fantasy turns frightening when she's cursed with an ability to see the death of anyone she kisses. After a vision reveals her crush is doomed to die in a strange murder spree targeting her closest friends, she races to unmask the killer before the mystery becomes a massacre.",
+   "poster_path": "/cLZ7iFZc25vluSIKt3XtdSTait4.jpg",
+   "release_date": "2026-09-15",
+   "popularity": 72.1751,
+   "vote_average": 6.5,
+   "vote_count": 11,
+   "providers_flatrate": []
+  },
+  {
+   "tmdb_id": 1323244,
+   "media_type": "movie",
+   "title": "Rage of Stars",
+   "original_language": "en",
+   "genre_ids": [
+    28,
+    878,
+    53
+   ],
+   "overview": "A story about a woman from the International Special Forces Unit, who has a premonition about the impending end of humanity.",
+   "poster_path": "/oLld47ZT1I3iecM3OWhIphohQUJ.jpg",
+   "release_date": "2026-08-06",
+   "popularity": 124.7337,
+   "vote_average": 6.658,
+   "vote_count": 155,
+   "providers_flatrate": []
+  },
+  {
+   "tmdb_id": 1329016,
+   "media_type": "movie",
+   "title": "Tony",
+   "original_language": "en",
+   "genre_ids": [
+    18,
+    35
+   ],
+   "overview": "A 19-year-old Anthony Bourdain travels to Provincetown and stumbles into the chaotic world of a restaurant kitchen, setting off a summer that will shape the course of his life.",
+   "poster_path": "/uwZF5guNR5EnXkjIVTk4UPTVGiS.jpg",
+   "release_date": "2026-08-07",
+   "popularity": 44.1618,
+   "vote_average": 7.625,
+   "vote_count": 76,
+   "providers_flatrate": []
+  },
+  {
+   "tmdb_id": 1339713,
+   "media_type": "movie",
+   "title": "Obsession",
+   "original_language": "en",
+   "genre_ids": [
+    27,
+    53
+   ],
+   "overview": "After breaking the mysterious \"One Wish Willow\" to win his crush's heart, a hopeless romantic finds himself getting exactly what he asked for but soon discovers that some desires come at a dark, sinister price.",
+   "poster_path": "/bRwnj8WEKBCvmfeUNOukJPwB43K.jpg",
+   "release_date": "2026-05-13",
+   "popularity": 136.6207,
+   "vote_average": 8.195,
+   "vote_count": 5591,
+   "providers_flatrate": [
+    "Peacock Premium",
+    "Peacock Premium Plus"
+   ]
+  },
+  {
+   "tmdb_id": 1340102,
+   "media_type": "movie",
+   "title": "Lion Fist",
+   "original_language": "en",
+   "genre_ids": [
+    28
+   ],
+   "overview": "Martial arts fighter Joe goes to prison for four years and takes his wife's blame for a drug bust. After his release, he learns that his son needs expensive surgery because of a life-threatening tumor. Joe's only chance to save him: a brutal all-styles tournament with a $100,000 prize.",
+   "poster_path": "/ezFIXWTbIXlBuZ4kKgto4N3i3of.jpg",
+   "release_date": "2026-09-10",
+   "popularity": 13.7615,
+   "vote_average": 6.0,
+   "vote_count": 5,
+   "providers_flatrate": []
+  },
+  {
+   "tmdb_id": 1365884,
+   "media_type": "movie",
+   "title": "Call My Agent! The Movie",
+   "original_language": "fr",
+   "genre_ids": [
+    35,
+    18
+   ],
+   "overview": "Five years after ASK Agency closed, debut director Andr\u00e9a loses her lead actor just days before filming and reunited with her old team \u2014 for better or worse.",
+   "poster_path": "/p4SvSFIkjCs4y0C7yAcYP9XNmP2.jpg",
+   "release_date": "2026-08-29",
+   "popularity": 24.3173,
+   "vote_average": 6.514,
+   "vote_count": 70,
+   "providers_flatrate": [
+    "Netflix",
+    "Netflix Standard with Ads"
+   ]
+  },
+  {
+   "tmdb_id": 1368337,
+   "media_type": "movie",
+   "title": "The Odyssey",
+   "original_language": "en",
+   "genre_ids": [
+    12,
+    28,
+    14
+   ],
+   "overview": "Odysseus, the legendary King of Ithaca, embarks on a long and perilous journey home following the Trojan War. Throughout his voyage, he is forced to confront the whims of gods, mythological monsters, and trials that stretch both his cunning and his humanity to the breaking point.",
+   "poster_path": "/5rhTDKUhPYvpdQIijFIs5VoWsON.jpg",
+   "release_date": "2026-07-15",
+   "popularity": 367.3657,
+   "vote_average": 8.015,
+   "vote_count": 3779,
+   "providers_flatrate": []
+  },
+  {
+   "tmdb_id": 1375646,
+   "media_type": "movie",
+   "title": "Colony",
+   "original_language": "ko",
+   "genre_ids": [
+    28,
+    27,
+    878
+   ],
+   "overview": "Professor Se-jeong is thrust into a bloody nightmare when a rapidly mutating virus is released during a biotech conference causing authorities to seal the facility. Trapped inside with no escape, Se-jeong along with a small group of survivors must fight to stay alive while the infected undergo horrific transformations.",
+   "poster_path": "/tN799oUR0f1gUKDYdMNrDaY7I51.jpg",
+   "release_date": "2026-05-21",
+   "popularity": 359.5505,
+   "vote_average": 8.081,
+   "vote_count": 819,
+   "providers_flatrate": []
+  },
+  {
+   "tmdb_id": 1377237,
+   "media_type": "movie",
+   "title": "Runner",
+   "original_language": "en",
+   "genre_ids": [
+    28,
+    35,
+    53
+   ],
+   "overview": "A former soldier is thrown into a brutal race against time when a critical medical delivery makes him and his unlikely partner the targets of a ruthless cartel. As the mission spirals into a deadly manhunt, every detour, delay, and bullet pushes them closer to failure. With betrayal closing in from every side, they must survive the chase and deliver their cargo to save the life of a little girl.",
+   "poster_path": "/yBKMAIj7clP42UkFejhGDBBoTpb.jpg",
+   "release_date": "2026-09-07",
+   "popularity": 62.1633,
+   "vote_average": 7.8,
+   "vote_count": 25,
+   "providers_flatrate": []
+  },
+  {
+   "tmdb_id": 1386315,
+   "media_type": "movie",
+   "title": "The Runner",
+   "original_language": "en",
+   "genre_ids": [
+    53,
+    28
+   ],
+   "overview": "Maia Marten, a brilliant London lawyer, has her life shattered by a single call on her morning run: her son has been taken. To get him back, she must keep running, obey every ruthless command, and trust no one-each second a test of how far a mother will go to save her child.",
+   "poster_path": "/uxCaBoYXsDC4A0SqTm3SISj0OwK.jpg",
+   "release_date": "2026-09-03",
+   "popularity": 150.5434,
+   "vote_average": 6.795,
+   "vote_count": 514,
+   "providers_flatrate": [
+    "Amazon Prime Video",
+    "Amazon Prime Video with Ads"
+   ]
+  },
+  {
+   "tmdb_id": 1400837,
+   "media_type": "movie",
+   "title": "Other Mommy",
+   "original_language": "en",
+   "genre_ids": [
+    27
+   ],
+   "overview": "A young girl, Bela, forms a relationship with a sinister entity in her home who looks uncannily like her own mother.",
+   "poster_path": "/fGRNCssTRrhYZxNzykGGCoMsAVq.jpg",
+   "release_date": "2026-10-07",
+   "popularity": 23.0745,
+   "vote_average": 0.0,
+   "vote_count": 0,
+   "providers_flatrate": []
+  },
+  {
+   "tmdb_id": 1400940,
+   "media_type": "movie",
+   "title": "Clayface",
+   "original_language": "en",
+   "genre_ids": [
+    27,
+    53,
+    878
+   ],
+   "overview": "Matt Hagen's meteoric rise from Gotham street kid to Hollywood leading man is tragically cut short when a local crime boss's actions leave him horribly disfigured. Abandoned by his team and with nothing left, Matt seeks out a cutting edge treatment that miraculously returns him to his former self\u2026 but also unexpectedly affects his grip on reality, spiraling him down a destructive path of all-consuming revenge.",
+   "poster_path": "/5jCpQnWPikggmQZoDp1eAi6BI6w.jpg",
+   "release_date": "2026-10-21",
+   "popularity": 15.1351,
+   "vote_average": 0.0,
+   "vote_count": 0,
+   "providers_flatrate": []
+  },
+  {
+   "tmdb_id": 1408162,
+   "media_type": "movie",
+   "title": "Vishwanath & Sons",
+   "original_language": "ta",
+   "genre_ids": [
+    18,
+    10749,
+    35
+   ],
+   "overview": "A celebrated Olympian shooter travels to America looking for a donor to help his sick child \u2014 but unexpected romance complicates his search.",
+   "poster_path": "/adDZVEQZnMJ380zPOmVj6vBWHgk.jpg",
+   "release_date": "2026-08-14",
+   "popularity": 143.4582,
+   "vote_average": 7.2,
+   "vote_count": 26,
+   "providers_flatrate": [
+    "Netflix",
+    "Netflix Standard with Ads"
+   ]
+  },
+  {
+   "tmdb_id": 1423191,
+   "media_type": "movie",
+   "title": "Resident Evil",
+   "original_language": "en",
+   "genre_ids": [
+    27,
+    878,
+    12
+   ],
+   "overview": "A hapless medical courier fights for his life amid an outbreak of a deadly mutagenic virus in an isolated mountain town.",
+   "poster_path": "/i7UyjfPio0VFHB9rBUZSFyhOoM8.jpg",
+   "release_date": "2026-09-16",
+   "popularity": 399.1021,
+   "vote_average": 7.602,
+   "vote_count": 103,
+   "providers_flatrate": []
+  },
+  {
+   "tmdb_id": 1432474,
+   "media_type": "movie",
+   "title": "Nimrods",
+   "original_language": "en",
+   "genre_ids": [
+    35,
+    10402
+   ],
+   "overview": "Three friends journey from Kansas City to Los Angeles, mistakenly believing that their band is opening for Green Day on New Year\u2019s Eve.",
+   "poster_path": "/4h2WtFCLZPXbydbpi248uqOT9yz.jpg",
+   "release_date": "2026-08-06",
+   "popularity": 20.7122,
+   "vote_average": 7.0,
+   "vote_count": 11,
+   "providers_flatrate": []
+  },
+  {
+   "tmdb_id": 1433367,
+   "media_type": "movie",
+   "title": "One Night Only",
+   "original_language": "en",
+   "genre_ids": [
+    10749,
+    35
+   ],
+   "overview": "Two love-starved strangers crash into each other on the one night of the year when single people are allowed to have sex.",
+   "poster_path": "/46q8z1TbbVcF8uhRHsvt5s0h2SH.jpg",
+   "release_date": "2026-08-06",
+   "popularity": 46.2825,
+   "vote_average": 6.53,
+   "vote_count": 132,
+   "providers_flatrate": []
+  },
+  {
+   "tmdb_id": 1433583,
+   "media_type": "movie",
+   "title": "The Weight",
+   "original_language": "en",
+   "genre_ids": [
+    18,
+    53,
+    80
+   ],
+   "overview": "When Samuel is torn from his daughter and sent to a brutal prison, Warden Clancy offers him a high-stakes proposition: smuggle gold out of a remote mine with a dangerous crew of prisoners and he\u2019ll win his freedom.",
+   "poster_path": "/8i5iZV50CoEtmDCFM7RSxCkpE8h.jpg",
+   "release_date": "2026-09-16",
+   "popularity": 23.2883,
+   "vote_average": 6.813,
+   "vote_count": 8,
+   "providers_flatrate": []
+  },
+  {
+   "tmdb_id": 1440098,
+   "media_type": "movie",
+   "title": "Drawn Together",
+   "original_language": "es",
+   "genre_ids": [
+    10749,
+    53
+   ],
+   "overview": "Marfil, daughter of a powerful Spanish businessman, sees her life in New York turned upside down when she is kidnapped and released without explanation. Her father hires Sebastian Moore as bodyguard and, forced to spend every minute together, an inevitable attraction ignites in a world where nothing is as it seems.",
+   "poster_path": "/6rpvddXbaQPOi0fB2HKWbZ3uUSg.jpg",
+   "release_date": "2026-09-09",
+   "popularity": 150.4704,
+   "vote_average": 6.606,
+   "vote_count": 94,
+   "providers_flatrate": [
+    "Amazon Prime Video",
+    "Amazon Prime Video with Ads"
+   ]
+  },
+  {
+   "tmdb_id": 1451944,
+   "media_type": "movie",
+   "title": "Lust Stories 3",
+   "original_language": "hi",
+   "genre_ids": [
+    10749,
+    18
+   ],
+   "overview": "Through four bite-sized yet emotionally resonant films, the anthology once again explores lust, love, relationships, and repressed desire, offering fresh perspectives on intimacy, longing, and human connection in all their complexity.",
+   "poster_path": "/1GBe4TeCeXa1ENg0rv2JH8cH0ry.jpg",
+   "release_date": "2026-09-18",
+   "popularity": 37.5379,
+   "vote_average": 7.0,
+   "vote_count": 1,
+   "providers_flatrate": []
+  },
+  {
+   "tmdb_id": 1465063,
+   "media_type": "movie",
+   "title": "Forgotten Island",
+   "original_language": "en",
+   "genre_ids": [
+    16,
+    12,
+    14,
+    35,
+    10751
+   ],
+   "overview": "While celebrating their last night together, high school graduates and best friends Jo and Raissa stumble upon a mysterious portal that transports them to the fantastical island of Nakali. When they discover that the memories of their entire friendship are the price for returning home, Jo and Raissa must race to find a way to leave the island before they forget each other forever.",
+   "poster_path": "/Lr0Ng7Gg02RW1AyfYEL6P0WUvd.jpg",
+   "release_date": "2026-09-10",
+   "popularity": 27.6252,
+   "vote_average": 8.6,
+   "vote_count": 7,
+   "providers_flatrate": []
+  },
+  {
+   "tmdb_id": 1510745,
+   "media_type": "movie",
+   "title": "Bodycam",
+   "original_language": "en",
+   "genre_ids": [
+    27
+   ],
+   "overview": "A call to a quiet suburban home unleashes unthinkable carnage when two officers mistakenly shoot a man and his infant child, spiraling the tragedy into a fierce, unrelenting fall into the unknown.",
+   "poster_path": "/xFpBNcG3Dlr8mYF5Kz9Tizs3Pxn.jpg",
+   "release_date": "2026-03-12",
+   "popularity": 8.2267,
+   "vote_average": 6.02,
+   "vote_count": 122,
+   "providers_flatrate": [
+    "Philo",
+    "AMC Plus Apple TV channel",
+    "AMC+ Amazon Channel",
+    "AMC+ Roku Premium Channel",
+    "AMC+",
+    "Shudder",
+    "Shudder Amazon Channel",
+    "Shudder Apple TV channel"
+   ]
+  },
+  {
+   "tmdb_id": 1514026,
+   "media_type": "movie",
+   "title": "Buddy",
+   "original_language": "en",
+   "genre_ids": [
+    27,
+    35
+   ],
+   "overview": "A magical, singing orange unicorn holds his cast hostage in a surreal TV-show dimension, as he becomes more and more demented.",
+   "poster_path": "/szMG36D2cIxeQ7i5zRQbq0DnNDe.jpg",
+   "release_date": "2026-08-27",
+   "popularity": 30.9665,
+   "vote_average": 7.934,
+   "vote_count": 61,
+   "providers_flatrate": []
+  },
+  {
+   "tmdb_id": 1522689,
+   "media_type": "movie",
+   "title": "Why Did I Get Married Again?",
+   "original_language": "en",
+   "genre_ids": [
+    35,
+    10749,
+    18
+   ],
+   "overview": "The couples reunite for the destination wedding of Marcus and Angela's daughter, bringing drama old and new as they ask, \"Why did we get married again?\"",
+   "poster_path": "/rwaxLuOkJ5mMvJU5juNaPcKADOW.jpg",
+   "release_date": "2026-09-08",
+   "popularity": 30.2252,
+   "vote_average": 7.1,
+   "vote_count": 22,
+   "providers_flatrate": [
+    "Netflix",
+    "Netflix Standard with Ads"
+   ]
+  },
+  {
+   "tmdb_id": 1558568,
+   "media_type": "movie",
+   "title": "Go Team!",
+   "original_language": "es",
+   "genre_ids": [
+    35
+   ],
+   "overview": "When their team-building event gets downgraded to a tiny village, a cheese company's staff think it can't get worse \u2014 then they learn about the layoffs.",
+   "poster_path": "/jM8LRvzYIqZqw6Si5xNECiHFDgM.jpg",
+   "release_date": "2026-09-11",
+   "popularity": 24.5733,
+   "vote_average": 5.239,
+   "vote_count": 23,
+   "providers_flatrate": [
+    "Netflix",
+    "Netflix Standard with Ads"
+   ]
+  },
+  {
+   "tmdb_id": 1641629,
+   "media_type": "movie",
+   "title": "You+Me \u2013 Against the World",
+   "original_language": "fr",
+   "genre_ids": [
+    10749,
+    18
+   ],
+   "overview": "Alma Lancaster, 18, leads a seemingly perfect life in a wealthy family, who believe she is studying law. In secret, she pursues her true dream \u2014 cinema. On campus, she meets 20-year-old Vadim Arcadi, a rebellious and magnetic solitaire with a troubled past. Forced to collaborate on a student film, they compete, get closer and start to fall in love \u2013 in spite of themselves. But someone is watching them. A mysterious figure begins to send anonymous threats, determined to separate them and expose secrets that could destroy Alma and Vadim.",
+   "poster_path": "/bAbBNVplg7h79sm94OyHeKk8Phz.jpg",
+   "release_date": "2026-09-18",
+   "popularity": 58.9162,
+   "vote_average": 5.6,
+   "vote_count": 9,
+   "providers_flatrate": []
+  },
+  {
+   "tmdb_id": 1656489,
+   "media_type": "movie",
+   "title": "Sultana",
+   "original_language": "tr",
+   "genre_ids": [
+    18,
+    10402
+   ],
+   "overview": "Sultana is a drama set in Istanbul's one and only strip club, telling a story of a women, power, rivalry and solidarity. A new Turkish story where women are not victims in a fairy tale, but warriors learning that the 'handsome prince' is often the real monster- and their only salvation is each other. Meral the long reigning queen of the one and only strip club of Istanbul which is Sultana, takes a talented new Belarusian dancer named Anna under her wing. But she soon realizes she has created a rival powerful enough to replace her, and a ruthless power struggle erupts between the two women.",
+   "poster_path": "/wDebpR4NplIM8EteAGfd51Zdisu.jpg",
+   "release_date": "2026-04-17",
+   "popularity": 63.4972,
+   "vote_average": 5.5,
+   "vote_count": 2,
+   "providers_flatrate": []
+  },
+  {
+   "tmdb_id": 1762506,
+   "media_type": "movie",
+   "title": "Band of Brothers: Legacy",
+   "original_language": "en",
+   "genre_ids": [
+    99,
+    10752
+   ],
+   "overview": "This tribute to the groundbreaking series that helped preserve the story of Easy Company and deepened public appreciation for the sacrifices of the Greatest Generation features new interviews with cast members Damian Lewis, Ron Livingston, Michael Cudlitz, Capt. Dale Dye, USMC (Ret.), David Schwimmer, and more. Through personal reflections and behind-the-scenes stories, participants revisit the experience of making the series and explore its lasting cultural resonance, and also includes never-before-seen archival footage and photographs of Easy Company and World War II.",
+   "poster_path": "/n29MsV1m2OCbDp6PLeHxziOVOLG.jpg",
+   "release_date": "2026-09-09",
+   "popularity": 16.2693,
+   "vote_average": 9.0,
+   "vote_count": 11,
+   "providers_flatrate": [
+    "HBO Max Amazon Channel",
+    "HBO Max"
+   ]
+  },
+  {
+   "tmdb_id": 456,
+   "media_type": "tv",
+   "title": "The Simpsons",
+   "original_language": "en",
+   "genre_ids": [
+    16,
+    35
+   ],
+   "overview": "Set in Springfield, the average American town, the show focuses on the antics and everyday adventures of the Simpson family; Homer, Marge, Bart, Lisa and Maggie, as well as a virtual cast of thousands. Since the beginning, the series has been a pop culture icon, attracting hundreds of celebrities to guest star. The show has also made name for itself in its fearless satirical take on politics, media and American life in general.",
+   "poster_path": "/uWpG7GqfKGQqX4YMAo3nv5OrglV.jpg",
+   "release_date": "1989-12-17",
+   "popularity": 320.2977,
+   "vote_average": 8.022,
+   "vote_count": 11013,
+   "providers_flatrate": [
+    "Disney Plus",
+    "Hulu",
+    "fuboTV",
+    "YouTube TV",
+    "FXNow",
+    "FOX One Amazon Channel"
+   ]
+  },
+  {
+   "tmdb_id": 615,
+   "media_type": "tv",
+   "title": "Futurama",
+   "original_language": "en",
+   "genre_ids": [
+    16,
+    35,
+    10765
+   ],
+   "overview": "The adventures of a late-20th-century New York City pizza delivery boy, Philip J. Fry, who, after being unwittingly cryogenically frozen for one thousand years, finds employment at Planet Express, an interplanetary delivery company in the retro-futuristic 31st century.",
+   "poster_path": "/eM8bbTn8C8vUwwS6upzzm7gX31u.jpg",
+   "release_date": "1999-03-28",
+   "popularity": 104.6597,
+   "vote_average": 8.363,
+   "vote_count": 3904,
+   "providers_flatrate": [
+    "Hulu",
+    "fuboTV",
+    "YouTube TV",
+    "FXNow"
+   ]
+  },
+  {
+   "tmdb_id": 1413,
+   "media_type": "tv",
+   "title": "American Horror Story",
+   "original_language": "en",
+   "genre_ids": [
+    18,
+    9648,
+    10765
+   ],
+   "overview": "An anthology horror drama series centering on different characters and locations, including a house with a murderous past, an asylum, a witch coven, a freak show, a hotel, a farmhouse in Roanoke, a cult, the apocalypse and a summer camp.",
+   "poster_path": "/x2c3AvZeTyNehRZXabTojAxfDuR.jpg",
+   "release_date": "2011-10-05",
+   "popularity": 135.2115,
+   "vote_average": 8.073,
+   "vote_count": 6168,
+   "providers_flatrate": [
+    "Amazon Prime Video",
+    "Disney Plus",
+    "Hulu",
+    "Amazon Prime Video with Ads"
+   ]
+  },
+  {
+   "tmdb_id": 2190,
+   "media_type": "tv",
+   "title": "South Park",
+   "original_language": "en",
+   "genre_ids": [
+    16,
+    35
+   ],
+   "overview": "Follow the misadventures of four irreverent grade-schoolers in the quiet, dysfunctional town of South Park, Colorado.",
+   "poster_path": "/k7n2EVge7G77eMr3brztRGG1fFU.jpg",
+   "release_date": "1997-08-13",
+   "popularity": 136.6361,
+   "vote_average": 8.331,
+   "vote_count": 5147,
+   "providers_flatrate": [
+    "fuboTV",
+    "Paramount Plus Premium",
+    "Paramount Plus Essential",
+    "Philo",
+    "Paramount Plus Apple TV channel",
+    "Paramount+ Amazon Channel",
+    "Paramount+ Roku Premium Channel"
+   ]
+  },
+  {
+   "tmdb_id": 30983,
+   "media_type": "tv",
+   "title": "Detective Conan",
+   "original_language": "ja",
+   "genre_ids": [
+    16,
+    80,
+    9648,
+    35
+   ],
+   "overview": "The son of a world famous mystery writer, Jimmy Kudo, has achieved his own notoriety by assisting the local police as a student detective. He has always been able to solve the most difficult of criminal cases using his wits and power of reason.",
+   "poster_path": "/rRIEFvHRy01OYzmXQBbGeW0Qilc.jpg",
+   "release_date": "1996-01-08",
+   "popularity": 104.7779,
+   "vote_average": 8.01,
+   "vote_count": 787,
+   "providers_flatrate": [
+    "Netflix",
+    "Crunchyroll",
+    "Crunchyroll Amazon Channel",
+    "Netflix Standard with Ads"
+   ]
+  },
+  {
+   "tmdb_id": 30984,
+   "media_type": "tv",
+   "title": "Bleach",
+   "original_language": "ja",
+   "genre_ids": [
+    10759,
+    16,
+    10765
+   ],
+   "overview": "For as long as he can remember, Ichigo Kurosaki has been able to see ghosts. But when he meets Rukia, a Soul Reaper who battles evil spirits known as Hollows, he finds his life is changed forever. Now, with a newfound wealth of spiritual energy, Ichigo discovers his true calling: to protect the living and the dead from evil.",
+   "poster_path": "/2EewmxXe72ogD0EaWM8gqa0ccIw.jpg",
+   "release_date": "2004-10-05",
+   "popularity": 179.4421,
+   "vote_average": 8.35,
+   "vote_count": 2272,
+   "providers_flatrate": [
+    "Hulu"
+   ]
+  },
+  {
+   "tmdb_id": 37854,
+   "media_type": "tv",
+   "title": "One Piece",
+   "original_language": "ja",
+   "genre_ids": [
+    10759,
+    35,
+    16
+   ],
+   "overview": "Years ago, the fearsome Pirate King, Gol D. Roger was executed leaving a huge pile of treasure and the famous \"One Piece\" behind. Whoever claims the \"One Piece\" will be named the new King of the Pirates.\n\nMonkey D. Luffy, a boy who consumed a \"Devil Fruit,\" decides to follow in the footsteps of his idol, the pirate Shanks, and find the One Piece. It helps, of course, that his body has the properties of rubber and that he's surrounded by a bevy of skilled fighters and thieves to help him along the way.\n\nLuffy will do anything to get the One Piece and become King of the Pirates!",
+   "poster_path": "/dB4EDhre2dsC2kxYDavyKWqLQwi.jpg",
+   "release_date": "1999-10-20",
+   "popularity": 74.0855,
+   "vote_average": 8.748,
+   "vote_count": 5547,
+   "providers_flatrate": [
+    "Netflix",
+    "Hulu",
+    "Crunchyroll",
+    "Crunchyroll Amazon Channel",
+    "Netflix Standard with Ads"
+   ]
+  },
+  {
+   "tmdb_id": 60625,
+   "media_type": "tv",
+   "title": "Rick and Morty",
+   "original_language": "en",
+   "genre_ids": [
+    16,
+    35,
+    10765,
+    10759
+   ],
+   "overview": "Follows a sociopathic genius scientist who drags his inherently timid grandson on adventures across the universe.",
+   "poster_path": "/owhkU6KRqdXoUQpjV8uyZGPtX58.jpg",
+   "release_date": "2013-12-02",
+   "popularity": 161.7252,
+   "vote_average": 8.681,
+   "vote_count": 11398,
+   "providers_flatrate": [
+    "Hulu",
+    "HBO Max Amazon Channel",
+    "YouTube TV",
+    "Adult Swim",
+    "HBO Max"
+   ]
+  },
+  {
+   "tmdb_id": 65942,
+   "media_type": "tv",
+   "title": "Re:ZERO -Starting Life in Another World-",
+   "original_language": "ja",
+   "genre_ids": [
+    16,
+    9648,
+    10759,
+    10765
+   ],
+   "overview": "Natsuki Subaru, an ordinary high school  student, is on his way home from the convenience store when he finds  himself transported to another world. As he's lost and confused in a new  world where he doesn't even know left from right, the only person to  reach out to him was a beautiful girl with silver hair. Determined to  repay her somehow for saving him from his own despair, Subaru agrees to  help the girl find something she's looking for.",
+   "poster_path": "/oHqYrPAsIiTD5m4DuxumV4er8BU.jpg",
+   "release_date": "2016-04-04",
+   "popularity": 110.9672,
+   "vote_average": 8.1,
+   "vote_count": 784,
+   "providers_flatrate": [
+    "Hulu",
+    "Crunchyroll",
+    "Crunchyroll Amazon Channel"
+   ]
+  },
+  {
+   "tmdb_id": 66980,
+   "media_type": "tv",
+   "title": "Babylon Berlin",
+   "original_language": "de",
+   "genre_ids": [
+    18,
+    80,
+    9648
+   ],
+   "overview": "Beneath the decadence of 1929 Berlin, lies an underworld city of sin. Police investigator Gereon Rath has been transferred from Cologne to the epicenter of political and social changes in the Golden Twenties.",
+   "poster_path": "/hr18RHPMQSA0zbCzAZN2asIOqy5.jpg",
+   "release_date": "2017-10-13",
+   "popularity": 38.8539,
+   "vote_average": 7.736,
+   "vote_count": 414,
+   "providers_flatrate": [
+    "MZ Choice Amazon Channel",
+    "Mhz Choice"
+   ]
+  },
+  {
+   "tmdb_id": 69557,
+   "media_type": "tv",
+   "title": "Fauda",
+   "original_language": "he",
+   "genre_ids": [
+    18,
+    10759,
+    10768
+   ],
+   "overview": "A top Israeli agent comes out of retirement to hunt for a Palestinian militant he thought he'd killed, setting a chaotic chain of events into motion.",
+   "poster_path": "/bc6XIKP1TrnugYMzIIUz9YCL8VM.jpg",
+   "release_date": "2015-02-15",
+   "popularity": 140.9214,
+   "vote_average": 7.386,
+   "vote_count": 276,
+   "providers_flatrate": [
+    "Netflix",
+    "Netflix Standard with Ads"
+   ]
+  },
+  {
+   "tmdb_id": 82684,
+   "media_type": "tv",
+   "title": "That Time I Got Reincarnated as a Slime",
+   "original_language": "ja",
+   "genre_ids": [
+    10759,
+    16,
+    10765,
+    35
+   ],
+   "overview": "Corporate worker Mikami Satoru is stabbed by a random killer, and is reborn to an alternate world. But he turns out to be reborn a slime! Thrown into this new world with the name Rimuru, he begins his quest to create a world that\u2019s welcoming to all races.",
+   "poster_path": "/pzujcdPAoH361NObVrtbA7zACE7.jpg",
+   "release_date": "2018-10-02",
+   "popularity": 53.9117,
+   "vote_average": 8.417,
+   "vote_count": 982,
+   "providers_flatrate": [
+    "Crunchyroll",
+    "Crunchyroll Amazon Channel"
+   ]
+  },
+  {
+   "tmdb_id": 94664,
+   "media_type": "tv",
+   "title": "Mushoku Tensei: Jobless Reincarnation",
+   "original_language": "ja",
+   "genre_ids": [
+    10759,
+    16,
+    10765
+   ],
+   "overview": "When a 34-year-old underachiever gets run over by a truck, his story doesn't end there. Reincarnated in a new world as an infant, Rudy will seize every opportunity to live the life he's always wanted. Armed with new friends, some freshly acquired magical abilities, and the courage to do the things he's always dreamed of, he's embarking on an epic adventure\u2014with all of his past experience intact!",
+   "poster_path": "/gLKOYIMyKlUHW0SVdskhgf9C0yy.jpg",
+   "release_date": "2021-01-11",
+   "popularity": 199.2138,
+   "vote_average": 8.4,
+   "vote_count": 1717,
+   "providers_flatrate": [
+    "Hulu",
+    "Crunchyroll",
+    "Crunchyroll Amazon Channel"
+   ]
+  },
+  {
+   "tmdb_id": 94997,
+   "media_type": "tv",
+   "title": "House of the Dragon",
+   "original_language": "en",
+   "genre_ids": [
+    10765,
+    18,
+    10759
+   ],
+   "overview": "The Targaryen dynasty is at the absolute apex of its power, with more than 15 dragons under their yoke. Most empires crumble from such heights. In the case of the Targaryens, their slow fall begins when King Viserys breaks with a century of tradition by naming his daughter Rhaenyra heir to the Iron Throne. But when Viserys later fathers a son, the court is shocked when Rhaenyra retains her status as his heir, and seeds of division sow friction across the realm.",
+   "poster_path": "/7V0Ebks0GgpKvQ7QbLAIdX5dos4.jpg",
+   "release_date": "2022-08-21",
+   "popularity": 119.8905,
+   "vote_average": 8.382,
+   "vote_count": 7127,
+   "providers_flatrate": [
+    "HBO Max Amazon Channel",
+    "Spectrum On Demand",
+    "HBO Max"
+   ]
+  },
+  {
+   "tmdb_id": 95350,
+   "media_type": "tv",
+   "title": "Lanterns",
+   "original_language": "en",
+   "genre_ids": [
+    18,
+    9648,
+    10765
+   ],
+   "overview": "Two intergalactic cops, new recruit John Stewart and Lantern legend Hal Jordan, are drawn into a dark, Earth-based mystery as they investigate a murder in the American heartland.",
+   "poster_path": "/gpC7h43xPMEV3goYMQShfJbTtLq.jpg",
+   "release_date": "2026-08-16",
+   "popularity": 230.2561,
+   "vote_average": 8.3,
+   "vote_count": 359,
+   "providers_flatrate": [
+    "HBO Max Amazon Channel",
+    "HBO Max"
+   ]
+  },
+  {
+   "tmdb_id": 95480,
+   "media_type": "tv",
+   "title": "Slow Horses",
+   "original_language": "en",
+   "genre_ids": [
+    80,
+    18,
+    9648
+   ],
+   "overview": "Follow a dysfunctional team of MI5 agents\u2014and their obnoxious boss, the notorious Jackson Lamb\u2014as they navigate the espionage world's smoke and mirrors to defend England from sinister forces.",
+   "poster_path": "/AdYr4DjOgXvDUMwu6vEhZy1Rnxk.jpg",
+   "release_date": "2022-04-01",
+   "popularity": 142.7957,
+   "vote_average": 8.0,
+   "vote_count": 984,
+   "providers_flatrate": [
+    "Apple TV",
+    "Apple TV Amazon Channel"
+   ]
+  },
+  {
+   "tmdb_id": 97546,
+   "media_type": "tv",
+   "title": "Ted Lasso",
+   "original_language": "en",
+   "genre_ids": [
+    18,
+    35
+   ],
+   "overview": "Ted Lasso, an American football coach, moves to England when he's hired to manage a soccer team\u2014despite having no experience. With cynical players and a doubtful town, will he get them to see the Ted Lasso Way?",
+   "poster_path": "/uRHsiw1wLxPHFXkkv4Ix1s0O6f4.jpg",
+   "release_date": "2020-08-14",
+   "popularity": 253.7316,
+   "vote_average": 8.372,
+   "vote_count": 2668,
+   "providers_flatrate": [
+    "Apple TV",
+    "Apple TV Amazon Channel"
+   ]
+  },
+  {
+   "tmdb_id": 103516,
+   "media_type": "tv",
+   "title": "Star Trek: Strange New Worlds",
+   "original_language": "en",
+   "genre_ids": [
+    10765,
+    18
+   ],
+   "overview": "Follow Captain Christopher Pike, Science Officer Spock and Number One in the years before Captain Kirk boarded the U.S.S. Enterprise, as they explore new worlds around the galaxy.",
+   "poster_path": "/97TTJuqiSMfU0DuXx1B4NG5QNP7.jpg",
+   "release_date": "2022-05-05",
+   "popularity": 67.4084,
+   "vote_average": 7.9,
+   "vote_count": 847,
+   "providers_flatrate": [
+    "Paramount Plus Premium",
+    "Paramount Plus Essential",
+    "Paramount Plus Apple TV channel",
+    "Paramount+ Amazon Channel",
+    "Paramount+ Roku Premium Channel"
+   ]
+  },
+  {
+   "tmdb_id": 106449,
+   "media_type": "tv",
+   "title": "A Record of a Mortal's Journey to Immortality",
+   "original_language": "zh",
+   "genre_ids": [
+    16,
+    10759,
+    18
+   ],
+   "overview": "A poor and ordinary boy from a village joins a minor sect in Jiang Hu and becomes an Unofficial Disciple by chance. How will Han Li, a commoner by birth, establish a foothold for himself in his sect? With his mediocre aptitude, he must successfully traverse the treacherous path of cultivation and avoid the notice of those who may do him harm. This is a story of an ordinary mortal who, against all odds, clashes with devilish demons and ancient celestials in order to find his own path towards immortality.",
+   "poster_path": "/rXX12X3Lx7jmlvfUc3glIwJVLCH.jpg",
+   "release_date": "2020-07-25",
+   "popularity": 157.3661,
+   "vote_average": 8.425,
+   "vote_count": 87,
+   "providers_flatrate": []
+  },
+  {
+   "tmdb_id": 108978,
+   "media_type": "tv",
+   "title": "Reacher",
+   "original_language": "en",
+   "genre_ids": [
+    10759,
+    80
+   ],
+   "overview": "Jack Reacher, a veteran military police investigator, has just recently entered civilian life. Reacher is a drifter, carrying no phone and the barest of essentials as he travels the country and explores the nation he once served.",
+   "poster_path": "/f1VCQIG2iCyOookdgOzwtUpwWC0.jpg",
+   "release_date": "2022-02-03",
+   "popularity": 902.525,
+   "vote_average": 8.124,
+   "vote_count": 3352,
+   "providers_flatrate": [
+    "Amazon Prime Video",
+    "Amazon Prime Video with Ads"
+   ]
+  },
+  {
+   "tmdb_id": 113962,
+   "media_type": "tv",
+   "title": "Lioness",
+   "original_language": "en",
+   "genre_ids": [
+    18,
+    10768
+   ],
+   "overview": "Cruz Manuelos, a rough-around-the-edges but passionate young Marine, is recruited to join the CIA's Lioness Engagement Team to help bring down a terrorist organization from within. Joe, the station chief of the Lioness program, is tasked with training, managing and leading her female undercover operatives.",
+   "poster_path": "/rzpHPSEgPTpRs8EHbygwsOw7jC0.jpg",
+   "release_date": "2023-07-23",
+   "popularity": 384.9337,
+   "vote_average": 8.203,
+   "vote_count": 1566,
+   "providers_flatrate": [
+    "fuboTV",
+    "Paramount Plus Premium",
+    "Paramount Plus Essential",
+    "Paramount Plus Apple TV channel",
+    "Paramount+ Amazon Channel",
+    "Paramount+ Roku Premium Channel",
+    "Spectrum On Demand"
+   ]
+  },
+  {
+   "tmdb_id": 125988,
+   "media_type": "tv",
+   "title": "Silo",
+   "original_language": "en",
+   "genre_ids": [
+    10765,
+    18
+   ],
+   "overview": "In a ruined and toxic future, thousands live in a giant silo deep underground. After its sheriff breaks a cardinal rule and residents die mysteriously, engineer Juliette starts to uncover shocking secrets and the truth about the silo.",
+   "poster_path": "/gMYZZvnkVNTqSVnVCphWbPXwWwb.jpg",
+   "release_date": "2023-05-04",
+   "popularity": 218.9536,
+   "vote_average": 8.216,
+   "vote_count": 2689,
+   "providers_flatrate": [
+    "Apple TV",
+    "Apple TV Amazon Channel"
+   ]
+  },
+  {
+   "tmdb_id": 194583,
+   "media_type": "tv",
+   "title": "The Walking Dead: Dead City",
+   "original_language": "en",
+   "genre_ids": [
+    10759,
+    18,
+    10765
+   ],
+   "overview": "Maggie and Negan travel to post-apocalyptic Manhattan - long ago cut off from the mainland. The crumbling city is filled with the dead and denizens who have made it a world full of anarchy, danger, beauty, and terror.",
+   "poster_path": "/wq3vuQzQgbS83zX3malAFWMsSwX.jpg",
+   "release_date": "2023-06-18",
+   "popularity": 61.2601,
+   "vote_average": 7.9,
+   "vote_count": 798,
+   "providers_flatrate": [
+    "Netflix",
+    "Amazon Prime Video",
+    "Philo",
+    "AMC Plus Apple TV channel",
+    "AMC+ Amazon Channel",
+    "AMC+ Roku Premium Channel",
+    "AMC+",
+    "YouTube TV",
+    "AMC",
+    "Spectrum On Demand",
+    "Netflix Standard with Ads",
+    "Amazon Prime Video with Ads"
+   ]
+  },
+  {
+   "tmdb_id": 196322,
+   "media_type": "tv",
+   "title": "Dark Matter",
+   "original_language": "en",
+   "genre_ids": [
+    10765,
+    18
+   ],
+   "overview": "Jason Dessen is abducted into an alternate version of his life. To get back to his real family, he embarks on a harrowing journey to save them from the most terrifying foe imaginable: himself.",
+   "poster_path": "/2DPmTlv8F0V1TQBPmlsGOVOhtWk.jpg",
+   "release_date": "2024-05-07",
+   "popularity": 70.5241,
+   "vote_average": 7.792,
+   "vote_count": 780,
+   "providers_flatrate": [
+    "Amazon Prime Video",
+    "Apple TV",
+    "Amazon Prime Video with Ads",
+    "Apple TV Amazon Channel"
+   ]
+  },
+  {
+   "tmdb_id": 207484,
+   "media_type": "tv",
+   "title": "Outlander: Blood of My Blood",
+   "original_language": "en",
+   "genre_ids": [
+    18
+   ],
+   "overview": "From the battlefields of World War I to the rugged Highlands of 18th century Scotland, two fated couples must defy the forces that seek to tear them apart, unfolding in surprising and unforeseen ways in this romantic saga that unfolds across time.",
+   "poster_path": "/2GAAeJfjHH7QBDVC35cu9RpD8nE.jpg",
+   "release_date": "2025-08-08",
+   "popularity": 25.9349,
+   "vote_average": 8.558,
+   "vote_count": 103,
+   "providers_flatrate": [
+    "Amazon Prime Video",
+    "Philo",
+    "Starz Amazon Channel",
+    "Spectrum On Demand",
+    "Starz",
+    "Amazon Prime Video with Ads",
+    "Starz Apple TV channel",
+    "Starz Roku Premium Channel"
+   ]
+  },
+  {
+   "tmdb_id": 224263,
+   "media_type": "tv",
+   "title": "Stranger Things: Tales from '85",
+   "original_language": "en",
+   "genre_ids": [
+    16,
+    10765,
+    9648,
+    10759
+   ],
+   "overview": "Winter. Hawkins. 1985. Welcome back to a town crawling with secrets, where beloved heroes are facing fresh mysteries... and an all-new breed of strange.",
+   "poster_path": "/xyVpiSZNA2fYJUuuagkqiSHJqjr.jpg",
+   "release_date": "2026-04-23",
+   "popularity": 53.4286,
+   "vote_average": 7.6,
+   "vote_count": 108,
+   "providers_flatrate": [
+    "Netflix",
+    "Netflix Standard with Ads"
+   ]
+  },
+  {
+   "tmdb_id": 232018,
+   "media_type": "tv",
+   "title": "Has Fallen",
+   "original_language": "fr",
+   "genre_ids": [
+    10759,
+    10768
+   ],
+   "overview": "A protection officer and an MI6 operative team up after a terrorist attack. They suspect a mole as they race to thwart a larger conspiracy threatening Paris.",
+   "poster_path": "/eyK6fy2NWfjmyBjUvRAR14FynPK.jpg",
+   "release_date": "2024-09-23",
+   "popularity": 51.2776,
+   "vote_average": 7.0,
+   "vote_count": 122,
+   "providers_flatrate": [
+    "Hulu"
+   ]
+  },
+  {
+   "tmdb_id": 236235,
+   "media_type": "tv",
+   "title": "The Gentlemen",
+   "original_language": "en",
+   "genre_ids": [
+    35,
+    18,
+    80
+   ],
+   "overview": "When aristocratic Eddie inherits the family estate, he discovers that it's home to an enormous weed empire \u2014 and its proprietors aren't going anywhere.",
+   "poster_path": "/tw3tzfXaSpmUZIB8ZNqNEGzMBCy.jpg",
+   "release_date": "2024-03-07",
+   "popularity": 144.9645,
+   "vote_average": 7.875,
+   "vote_count": 929,
+   "providers_flatrate": [
+    "Netflix",
+    "Netflix Standard with Ads"
+   ]
+  },
+  {
+   "tmdb_id": 246473,
+   "media_type": "tv",
+   "title": "Made in Korea",
+   "original_language": "ko",
+   "genre_ids": [
+    80,
+    18
+   ],
+   "overview": "In 1970s South Korea, follow two men on opposite sides of power \u2014 one driven by ambition, the other by justice. As their worlds collide, greed, loyalty, and survival intertwine in a battle that will shape a nation.",
+   "poster_path": "/cyBg9FJ2AmTWEGktA43gMo4t0Vj.jpg",
+   "release_date": "2025-12-24",
+   "popularity": 31.5485,
+   "vote_average": 8.2,
+   "vote_count": 36,
+   "providers_flatrate": [
+    "Disney Plus",
+    "Hulu"
+   ]
+  },
+  {
+   "tmdb_id": 247718,
+   "media_type": "tv",
+   "title": "MobLand",
+   "original_language": "en",
+   "genre_ids": [
+    80,
+    18
+   ],
+   "overview": "Two mob families clash in a war that threatens to topple empires and lives.",
+   "poster_path": "/5Xc7WpWsgflfgEMoBlf9TmWhfbH.jpg",
+   "release_date": "2025-03-30",
+   "popularity": 181.917,
+   "vote_average": 8.4,
+   "vote_count": 854,
+   "providers_flatrate": [
+    "Amazon Prime Video",
+    "fuboTV",
+    "Paramount Plus Premium",
+    "Paramount Plus Essential",
+    "Paramount Plus Apple TV channel",
+    "Paramount+ Amazon Channel",
+    "Paramount+ Roku Premium Channel",
+    "Spectrum On Demand",
+    "Amazon Prime Video with Ads"
+   ]
+  },
+  {
+   "tmdb_id": 252105,
+   "media_type": "tv",
+   "title": "Golden Axe",
+   "original_language": "en",
+   "genre_ids": [
+    16,
+    10765
+   ],
+   "overview": "Legendary warriors Ax Battler, Tyris Flare, and Gilius Thunderhead reunite to save Yuria from the evil giant Death Adder, who just won't seem to stay dead. Their quest is complicated by Hampton Squib, an inexperienced and wildly underprepared adventurer whose dream of heroism far exceeds his abilities. Forced to work together despite their flaws, they must find a way to stop Death Adder once and for all.",
+   "poster_path": "/toEwR5VTFzHmxW1pX1HjtTXH6QH.jpg",
+   "release_date": "2026-09-16",
+   "popularity": 32.0373,
+   "vote_average": 8.0,
+   "vote_count": 4,
+   "providers_flatrate": [
+    "Paramount Plus Premium",
+    "Paramount Plus Essential",
+    "Paramount Plus Apple TV channel",
+    "Paramount+ Amazon Channel",
+    "Paramount+ Roku Premium Channel"
+   ]
+  },
+  {
+   "tmdb_id": 255358,
+   "media_type": "tv",
+   "title": "THE GHOST IN THE SHELL",
+   "original_language": "ja",
+   "genre_ids": [
+    16,
+    10759,
+    10765
+   ],
+   "overview": "2029, a near-future Japan. The full cyborg Motoko Kusanagi envisions a task force that preemptively strikes emerging threats. She and her team are scouted by Daisuke Aramaki as Public Security Section 9, AKA the \"Shell Squad.\" An international conspiracy hints at a hacker known as The \"Puppet Master.\" What fate awaits Kusanagi? What is the hacker's endgame?",
+   "poster_path": "/nUXjSyXAQZhOf32e6lkLX6C6Rf3.jpg",
+   "release_date": "2026-07-07",
+   "popularity": 25.7769,
+   "vote_average": 8.2,
+   "vote_count": 62,
+   "providers_flatrate": [
+    "Amazon Prime Video",
+    "Amazon Prime Video with Ads"
+   ]
+  },
+  {
+   "tmdb_id": 258230,
+   "media_type": "tv",
+   "title": "Last Seen",
+   "original_language": "en",
+   "genre_ids": [
+    80,
+    18,
+    9648
+   ],
+   "overview": "When emergency dispatcher Ian Ridley receives a frantic call from a teenager he believes could be his long-missing daughter, he stops at nothing to find her.",
+   "poster_path": "/vozJZjHv0Yyv4PjoOxF5tVMUGFI.jpg",
+   "release_date": "2026-09-09",
+   "popularity": 40.6723,
+   "vote_average": 8.286,
+   "vote_count": 14,
+   "providers_flatrate": [
+    "Apple TV",
+    "Apple TV Amazon Channel"
+   ]
+  },
+  {
+   "tmdb_id": 260249,
+   "media_type": "tv",
+   "title": "The Trial",
+   "original_language": "es",
+   "genre_ids": [
+    18
+   ],
+   "overview": "A teenager and her father struggle for justice after she is sexually assaulted by the scion of a successful businessman. Not only will the father and daughter have to navigate a failed judicial system, but they must also contend with a wealthy adversary bent on using all his power to protect his son.",
+   "poster_path": "/3k5HpocqX4grgmqCecT2OdYMyT0.jpg",
+   "release_date": "2026-09-11",
+   "popularity": 54.2426,
+   "vote_average": 9.588,
+   "vote_count": 34,
+   "providers_flatrate": [
+    "Amazon Prime Video",
+    "Amazon Prime Video with Ads"
+   ]
+  },
+  {
+   "tmdb_id": 260458,
+   "media_type": "tv",
+   "title": "Adults",
+   "original_language": "en",
+   "genre_ids": [
+    35
+   ],
+   "overview": "A group of twenty-somethings in New York trying to be good people, despite being neither \"good\" nor \"people\" yet.",
+   "poster_path": "/h8GrwttOjjQEoQJ72W9ugkyIVaB.jpg",
+   "release_date": "2025-05-28",
+   "popularity": 28.9282,
+   "vote_average": 6.283,
+   "vote_count": 90,
+   "providers_flatrate": [
+    "Hulu",
+    "fuboTV",
+    "YouTube TV",
+    "FXNow"
+   ]
+  },
+  {
+   "tmdb_id": 270476,
+   "media_type": "tv",
+   "title": "Widow's Bay",
+   "original_language": "en",
+   "genre_ids": [
+    18,
+    35,
+    9648
+   ],
+   "overview": "The mayor of a New England town resolves to turn it into the next tourist hot spot, despite local warnings that it's cursed.",
+   "poster_path": "/vKq8XEJKxQTHd2Bm5zZMFPUrke7.jpg",
+   "release_date": "2026-04-28",
+   "popularity": 67.9616,
+   "vote_average": 8.065,
+   "vote_count": 470,
+   "providers_flatrate": [
+    "Apple TV",
+    "Apple TV Amazon Channel"
+   ]
+  },
+  {
+   "tmdb_id": 273207,
+   "media_type": "tv",
+   "title": "Neagley",
+   "original_language": "en",
+   "genre_ids": [
+    18,
+    9648,
+    80
+   ],
+   "overview": "Frances Neagley is a private investigator in Chicago and former military colleague of Jack Reacher in the Army's 110th Special Investigations Unit. When she learns that a beloved friend from her past has been killed in a suspicious accident, she becomes hell-bent on justice.",
+   "poster_path": "/lKOPmO0ah17ogQ9hWg7lSd40kIr.jpg",
+   "release_date": "2026-09-16",
+   "popularity": 139.5926,
+   "vote_average": 7.8,
+   "vote_count": 55,
+   "providers_flatrate": [
+    "Amazon Prime Video",
+    "Amazon Prime Video with Ads"
+   ]
+  },
+  {
+   "tmdb_id": 275102,
+   "media_type": "tv",
+   "title": "The Scandal",
+   "original_language": "ko",
+   "genre_ids": [
+    18
+   ],
+   "overview": "In Joseon, a secret proposal ignites hidden desires in a gifted noblewoman, a famed lover and an unsuspecting lady caught in their dangerous game.",
+   "poster_path": "/pJsIzlTjmx07ilwEkl0cglrMVa1.jpg",
+   "release_date": "2026-09-18",
+   "popularity": 1753.5134,
+   "vote_average": 6.0,
+   "vote_count": 3,
+   "providers_flatrate": []
+  },
+  {
+   "tmdb_id": 282326,
+   "media_type": "tv",
+   "title": "Against the Current",
+   "original_language": "zh",
+   "genre_ids": [
+    18,
+    10751
+   ],
+   "overview": "Shen Jialan, once a nobleman's granddaughter, falls from grace after her family is falsely accused of treason. Abandoned by her fianc\u00e9 Lin Jinqi, she is forced to assume a servant's identity in his household. Despite hardships, she refuses to bow to fate. With resilience and wit, she rises above class barriers, wins Lin Jinqi's heart, earns the family's respect, and ultimately clears her family's name.",
+   "poster_path": "/euBlF64efQmsl2y54LeNmLQPNob.jpg",
+   "release_date": "2026-09-11",
+   "popularity": 79.7497,
+   "vote_average": 7.2,
+   "vote_count": 4,
+   "providers_flatrate": [
+    "Rakuten Viki"
+   ]
+  },
+  {
+   "tmdb_id": 287620,
+   "media_type": "tv",
+   "title": "Stuart Fails to Save the Universe",
+   "original_language": "en",
+   "genre_ids": [
+    35,
+    10765
+   ],
+   "overview": "After accidentally creating a new multiverse, comic book store owner Stuart Bloom must locate a quantum-interference device to restore reality.",
+   "poster_path": "/txj8ujTZwGUjpCdhCsQBnTlh4aS.jpg",
+   "release_date": "2026-07-23",
+   "popularity": 59.2298,
+   "vote_average": 8.79,
+   "vote_count": 169,
+   "providers_flatrate": [
+    "HBO Max Amazon Channel",
+    "HBO Max"
+   ]
+  },
+  {
+   "tmdb_id": 294486,
+   "media_type": "tv",
+   "title": "The Long Watch",
+   "original_language": "zh",
+   "genre_ids": [
+    9648
+   ],
+   "overview": "A millennium-era leak case shaping cross-strait dynamics hides a covert tug-of-war between foreign forces and Chinese agents. In the late 90s, rookie Chunxiao and star agent Ma Qi foil plots together, but as time passes, the case reshapes all involved amid era-defining shifts.",
+   "poster_path": "/gRe5FZjMWw8xXzWk1hxWuNQckOg.jpg",
+   "release_date": "2026-09-06",
+   "popularity": 15.7322,
+   "vote_average": 9.0,
+   "vote_count": 1,
+   "providers_flatrate": []
+  },
+  {
+   "tmdb_id": 294636,
+   "media_type": "tv",
+   "title": "The Ordinary Jackpot",
+   "original_language": "ko",
+   "genre_ids": [
+    10765,
+    18
+   ],
+   "overview": "An ordinary office worker wins the lottery \u2013 the amount isn't enough for him to quit his job, but it's enough to give him a new outlook on life.",
+   "poster_path": "/3jLoiPorNssIfLlEuw8Om7ujca6.jpg",
+   "release_date": "2026-09-10",
+   "popularity": 22.0594,
+   "vote_average": 10.0,
+   "vote_count": 1,
+   "providers_flatrate": [
+    "Rakuten Viki"
+   ]
+  },
+  {
+   "tmdb_id": 295089,
+   "media_type": "tv",
+   "title": "The Doll",
+   "original_language": "pl",
+   "genre_ids": [
+    18
+   ],
+   "overview": "When Stanis\u0142aw falls in love with the aristocratic Izabela, he dedicates his entire life to winning her over.",
+   "poster_path": "/zJSceCJMF7C6AtdRycZjNjavCT.jpg",
+   "release_date": "2026-09-16",
+   "popularity": 25.0847,
+   "vote_average": 5.2,
+   "vote_count": 5,
+   "providers_flatrate": [
+    "Netflix",
+    "Netflix Standard with Ads"
+   ]
+  },
+  {
+   "tmdb_id": 298008,
+   "media_type": "tv",
+   "title": "Plastic Beauty",
+   "original_language": "ja",
+   "genre_ids": [
+    18
+   ],
+   "overview": "When a gifted ER surgeon is thrust into cosmetic medicine, her clash with a celebrity doctor exposes the greed and desire beneath the glamour.",
+   "poster_path": "/u0mCeqVvQW2HEfrRy1we9UklsQd.jpg",
+   "release_date": "2026-09-17",
+   "popularity": 31.0231,
+   "vote_average": 7.0,
+   "vote_count": 1,
+   "providers_flatrate": [
+    "Netflix",
+    "Netflix Standard with Ads"
+   ]
+  },
+  {
+   "tmdb_id": 298168,
+   "media_type": "tv",
+   "title": "The Shards",
+   "original_language": "en",
+   "genre_ids": [
+    18,
+    9648
+   ],
+   "overview": "17-year-old Bret Easton Ellis is in his final year at the elite Buckley prep school. Upending his world is the arrival of a mysterious new student, Robert Mallory, whose unsettling presence coincides with the activities of a serial killer known as The Trawler.",
+   "poster_path": "/wP0GdqwVu2g1y3q1KzBXuSrdTvX.jpg",
+   "release_date": "2026-08-05",
+   "popularity": 34.7953,
+   "vote_average": 7.1,
+   "vote_count": 58,
+   "providers_flatrate": [
+    "Hulu",
+    "fuboTV",
+    "YouTube TV"
+   ]
+  },
+  {
+   "tmdb_id": 299939,
+   "media_type": "tv",
+   "title": "Monster: The Lizzie Borden Story",
+   "original_language": "en",
+   "genre_ids": [
+    18,
+    80
+   ],
+   "overview": "Trapped in a cruel Victorian-era household, Lizzie Borden kills her parents in a gory ax murder that shocks the nation.",
+   "poster_path": "/57XScX1aYtKi1LvHYFQLPUxVhTG.jpg",
+   "release_date": "2026-09-17",
+   "popularity": 136.6505,
+   "vote_average": 6.982,
+   "vote_count": 28,
+   "providers_flatrate": [
+    "Netflix",
+    "Netflix Standard with Ads"
+   ]
+  },
+  {
+   "tmdb_id": 299952,
+   "media_type": "tv",
+   "title": "The Early Spring",
+   "original_language": "zh",
+   "genre_ids": [
+    18
+   ],
+   "overview": "New to Beijing, Shang Zhitao crosses paths with Luan Nian, a true creative genius. Bold and open-hearted, she grows stronger step by step and gradually breaks through the defenses around Luan's guarded heart. Drawn to each other, they find themselves caught in an intense, on-again, off-again relationship in the urban jungle. To love is to summon all your courage and leave no regrets, to heal each other, and to grow together. But when love and her career pull her in different directions, she puts her career first. When she has come into her own and he has learned to soften his sharp edges, they finally stand as equals, ready to write a new ending together...",
+   "poster_path": "/lGFngmJWMO4HTPcI0sUGKBAFqMe.jpg",
+   "release_date": "2026-08-26",
+   "popularity": 51.7369,
+   "vote_average": 8.381,
+   "vote_count": 21,
+   "providers_flatrate": [
+    "Netflix",
+    "Netflix Standard with Ads"
+   ]
+  },
+  {
+   "tmdb_id": 300388,
+   "media_type": "tv",
+   "title": "Sins and Roses",
+   "original_language": "tr",
+   "genre_ids": [
+    18
+   ],
+   "overview": "As a boy, Serhat lost both his father and fortune but built an empire on family and integrity. His world shatters when his wife Berrak hides a devastating secret and falls into a coma. While searching for answers, his heart hardens\u2014until he meets Zeynep, a passionate florist chasing the same truth, igniting a journey of trust, passion, and redemption.",
+   "poster_path": "/3Qwhs7xxf9LILllWLnxbSaCBNDf.jpg",
+   "release_date": "2025-10-11",
+   "popularity": 53.6893,
+   "vote_average": 8.3,
+   "vote_count": 10,
+   "providers_flatrate": []
+  },
+  {
+   "tmdb_id": 300507,
+   "media_type": "tv",
+   "title": "Crew Girl",
+   "original_language": "en",
+   "genre_ids": [
+    18
+   ],
+   "overview": "After a family scandal, teen rower Teagan Tao moves to a small town and joins an elite prep school's all-boys crew, sparking rivalry and attraction.",
+   "poster_path": "/jkPZW1iHNvlI6077NxSxwITa1tj.jpg",
+   "release_date": "2026-09-10",
+   "popularity": 70.3109,
+   "vote_average": 8.4,
+   "vote_count": 30,
+   "providers_flatrate": [
+    "Netflix",
+    "Netflix Standard with Ads"
+   ]
+  },
+  {
+   "tmdb_id": 304842,
+   "media_type": "tv",
+   "title": "The Drop: A Snowfall Saga",
+   "original_language": "en",
+   "genre_ids": [
+    18
+   ],
+   "overview": "In 1990s Los Angeles, Wanda and Leon fight to take West Coast rap mainstream while gang wars erupt and record labels move to exploit hip hop culture for their own gain.",
+   "poster_path": "/naCJhAWRtxBWBfMYdFpM5sPwczI.jpg",
+   "release_date": "2026-09-08",
+   "popularity": 31.9272,
+   "vote_average": 6.2,
+   "vote_count": 10,
+   "providers_flatrate": [
+    "Hulu",
+    "fuboTV"
+   ]
+  },
+  {
+   "tmdb_id": 312663,
+   "media_type": "tv",
+   "title": "The Fixers",
+   "original_language": "zh",
+   "genre_ids": [
+    10759,
+    35,
+    80
+   ],
+   "overview": "A washed-up gangster reluctantly teams up with an arrogant political heir to become \"fixers\", cleaning up dangerous secrets for both sides of the law.",
+   "poster_path": "/hwEfhJNLii8oUfuiRBPk11DDv8y.jpg",
+   "release_date": "2026-09-17",
+   "popularity": 26.8204,
+   "vote_average": 8.0,
+   "vote_count": 2,
+   "providers_flatrate": [
+    "Netflix",
+    "Netflix Standard with Ads"
+   ]
+  },
+  {
+   "tmdb_id": 314939,
+   "media_type": "tv",
+   "title": "A Love Other Than Yours",
+   "original_language": "ko",
+   "genre_ids": [
+    18,
+    35
+   ],
+   "overview": "A realistic, emotionally resonant romance about a couple in their tenth year together whose comfortable relationship is tested by unexpected feelings.",
+   "poster_path": "/iKgdhgBPi1cCRRqsUgaxUDRuFP6.jpg",
+   "release_date": "2026-09-12",
+   "popularity": 74.7103,
+   "vote_average": 8.0,
+   "vote_count": 1,
+   "providers_flatrate": [
+    "Amazon Prime Video",
+    "Amazon Prime Video with Ads"
+   ]
+  },
+  {
+   "tmdb_id": 320760,
+   "media_type": "tv",
+   "title": "Not a Stranger",
+   "original_language": "tr",
+   "genre_ids": [
+    18
+   ],
+   "overview": "After giving birth, painter Funda put her career on hold to focus on her child. Ready to return to painting, she finally finds the nanny she has been searching for: Nazl\u0131. But the mysterious and increasingly unsettling woman soon begins to disrupt the seemingly peaceful lives of Funda and her husband \u0130lker. What begins as a simple employment arrangement develops into a dangerous psychological game in which desire, secrets and loyalty are put to the test.",
+   "poster_path": "/tgBRNtynz81e0DE4bWo8XwTbCw9.jpg",
+   "release_date": "2026-09-17",
+   "popularity": 41.6874,
+   "vote_average": 5.667,
+   "vote_count": 3,
+   "providers_flatrate": [
+    "Netflix",
+    "Netflix Standard with Ads"
+   ]
+  },
+  {
+   "tmdb_id": 324111,
+   "media_type": "tv",
+   "title": "Physical 100: Italy",
+   "original_language": "it",
+   "genre_ids": [
+    10764
+   ],
+   "overview": "One hundred Italian athletes face brutal physical challenges, each battling to outlast the rest and claim the glory of becoming the one true champion.",
+   "poster_path": "/AtYUDT5nEoFDOtR464mFlZCfcB5.jpg",
+   "release_date": "2026-09-11",
+   "popularity": 18.0491,
+   "vote_average": 7.5,
+   "vote_count": 4,
+   "providers_flatrate": [
+    "Netflix",
+    "Netflix Standard with Ads"
+   ]
+  },
+  {
+   "tmdb_id": 325755,
+   "media_type": "tv",
+   "title": "The Perfect Lie",
+   "original_language": "nl",
+   "genre_ids": [
+    18
+   ],
+   "overview": "When one of their own is killed in a house fire, four picture-perfect couples are forced to question everything they thought they knew about each other.",
+   "poster_path": "/a8qjbVX7lo1v7m5Awzhx7Ptk8gO.jpg",
+   "release_date": "2026-09-10",
+   "popularity": 17.0352,
+   "vote_average": 6.3,
+   "vote_count": 16,
+   "providers_flatrate": [
+    "Netflix",
+    "Netflix Standard with Ads"
+   ]
+  },
+  {
+   "tmdb_id": 329471,
+   "media_type": "tv",
+   "title": "The Grand Tour",
+   "original_language": "en",
+   "genre_ids": [
+    10764
+   ],
+   "overview": "Welcome to The Grand Tour. The world's greatest motoring show reboots with new presenters - Thomas Holland, James Engelsman and Francis Bourgeois - and its trademark blend of global adventure, incredible vehicles, epic stunts and strong opinions.",
+   "poster_path": "/kq6XB6xmD86txW4UR32tT2JUiN9.jpg",
+   "release_date": "2026-09-04",
+   "popularity": 13.1212,
+   "vote_average": 8.636,
+   "vote_count": 11,
+   "providers_flatrate": [
+    "Amazon Prime Video"
+   ]
+  },
+  {
+   "tmdb_id": 332401,
+   "media_type": "tv",
+   "title": "City of Blood",
+   "original_language": "de",
+   "genre_ids": [
+    9648
+   ],
+   "overview": "Berlin \u2014 a city-state on the brink. While a privileged few live beneath a climate-controlled dome, those outside struggle to survive in a world ravaged by heat, corruption, and crime. After years apart, sisters Bea and Phoebe are reunited and uncover a dark secret: Vampires are determined to seize political power \u2014 and blood has become the city's new currency.",
+   "poster_path": "/Njr0Rlb4CobAfrGE8NVffYDGqx.jpg",
+   "release_date": "2026-09-16",
+   "popularity": 50.2623,
+   "vote_average": 8.6,
+   "vote_count": 5,
+   "providers_flatrate": [
+    "Disney Plus",
+    "Hulu"
+   ]
+  },
+  {
+   "tmdb_id": 332657,
+   "media_type": "tv",
+   "title": "Route 187",
+   "original_language": "en",
+   "genre_ids": [
+    80,
+    18
+   ],
+   "overview": "Citizens combat urban violence until a bus driver and student's murders by thugs spark outrage, leading authorities to hunt the culprits captured on video.",
+   "poster_path": "/yfP9A3IaKE00U1ap1y7wAoZRzeC.jpg",
+   "release_date": "2026-09-16",
+   "popularity": 35.7336,
+   "vote_average": 7.1,
+   "vote_count": 7,
+   "providers_flatrate": [
+    "Paramount Plus Premium",
+    "Paramount Plus Essential",
+    "Paramount Plus Apple TV channel",
+    "Paramount+ Amazon Channel",
+    "Paramount+ Roku Premium Channel"
+   ]
+  },
+  {
+   "tmdb_id": 332863,
+   "media_type": "tv",
+   "title": "Stolen Heartbeats",
+   "original_language": "es",
+   "genre_ids": [
+    18,
+    9648
+   ],
+   "overview": "After an attack leaves a woman named Anabel comatose, she and Rafael\u2014a nurse who has the unique ability to hear the dead\u2014must work together to keep her alive while hiding from her enemies.",
+   "poster_path": "/rmoGrMzPRCKGMGccNxda3eyCq48.jpg",
+   "release_date": "2026-09-11",
+   "popularity": 25.4027,
+   "vote_average": 5.667,
+   "vote_count": 3,
+   "providers_flatrate": [
+    "Netflix",
+    "Netflix Standard with Ads"
+   ]
+  }
+ ]
+}
