@@ -269,6 +269,47 @@ def test_campaign_pushes_genre_onto_targeted_home_screen():
     assert any(t in mlb_titles for t in titles)
 
 
+def test_campaign_collection_pinned_for_targets():
+    s = LiveSim(n_agents=24, seed=7, tick_seconds=0.05)
+    s.direct("pivot some users to baseball for 7 days")
+    tgt = sorted(s.campaigns[0]["targets"])[0]
+    rails = s.home_screen(s.personas[tgt])["rails"]
+    camp = next(r for r in rails if "Master Agent" in r["title"])
+    assert rails.index(camp) <= 1  # prominent: top two
+    assert "Sports" in camp["title"]
+    assert camp["items"]  # non-empty
+    assert camp["items"][0]["title"] in ("Ken Burns: Baseball", "Moneyball",
+                                         "Field of Dreams", "42")
+    others = [i for i in range(s.n_agents)
+              if i not in s.campaigns[0]["targets"]]
+    assert others, "test needs a non-target"
+    rails2 = s.home_screen(s.personas[others[0]])["rails"]
+    assert not any("Master Agent" in r["title"] for r in rails2)
+
+
+def test_scheduled_campaign_fires_on_start_day():
+    s = LiveSim(n_agents=24, seed=7, tick_seconds=0.05)
+    out = s.direct("pivot some users to baseball from day 11 to day 20")
+    c = s.campaigns[0]
+    assert c["start_day"] == 11 and c["days_total"] == 9
+    assert "days 11–19" in out["message"]
+    tgt = sorted(c["targets"])[0]
+    # before day 11: nothing steers
+    rails = s.home_screen(s.personas[tgt])["rails"]
+    assert not any("Master Agent" in r["title"] for r in rails)
+    for _ in range(11):
+        with s.lock:
+            s.tick()
+    assert s._camp_active(c)
+    rails = s.home_screen(s.personas[tgt])["rails"]
+    camp = next(r for r in rails if "Master Agent" in r["title"])
+    assert camp["items"][0]["title"] == "Ken Burns: Baseball"
+    # expires 9 days after going live and lands in history
+    for _ in range(9):
+        with s.lock:
+            s.tick()
+    assert not s.campaigns and len(s.campaign_history) == 1
+
 def test_catalog_500_unique_with_required_keys():
     d = json.load(open(os.path.join(REPO, "data", "catalog_tmdb.json")))
     items = d["items"]
