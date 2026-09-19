@@ -55,7 +55,12 @@ which is already in `requirements.txt`. Works on Python 3.9+.
   and `for N days`. Campaigns fade slowly and steadily — full strength on day
   one, linearly down to a whisper on the last day — then expire automatically;
   `stop campaigns` clears them. Live campaigns also push the campaign genre
-  onto the targeted agents' home-screen rails (same fade). API: `POST /api/direct {"text": ...}`;
+  onto the targeted agents' home-screen rails (same fade), and each targeted
+  agent gets a featured 🎭 campaign collection pinned near the top of its
+  home screen. Campaigns can also be **scheduled**: *"pivot some users to
+  baseball from day 11 to day 20"* or *"blast everyone to horror on day 5
+  for 3 days"* — scheduled campaigns show as 📅 on the campaign timeline
+  and on agent cards, then fire automatically on their start day. API: `POST /api/direct {"text": ...}`;
   campaigns and the director log appear in `GET /api/status` and SSE
   `directed` events.
 - **Two hand-built baseball lovers** — `persona-seamhead` (Baseball Purist:
