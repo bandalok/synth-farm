@@ -33,11 +33,43 @@ which is already in `requirements.txt`. Works on Python 3.9+.
 
 ## What's live
 
+- **30 taste dimensions** — the complete Gracenote genre taxonomy (29
+  dimensions) plus **Bollywood** as a 30th, explicitly non-Gracenote axis.
+  Hindi-language titles get 50% of their vector on Bollywood, 50% spread over
+  their Gracenote genres. The 500-title TMDb catalog holds ~190 Bollywood
+  titles; agent **#7** (persona-00006) is a dedicated Bollywood pivot whose
+  top taste dimension is Bollywood.
+- **13 rails, each with its own ordering** — Continue watching (recency),
+  Personalized (taste match), genre row (top-rated in your #1 genre),
+  Trending (today's genre heat), New this month (newest first),
+  Because-you-watched (similarity to that title), Popular (popularity),
+  Worth the detour (taste match outside your top-5 genres), Critics' picks
+  (rating), Viewers like you (cluster consumption), Hidden gems (best of the
+  low-popularity), Marathon weekend, and On {app}. Titles may repeat across
+  rows, but no two rows share the same order.
+- **🎬 Director manager agent** — a plain-English command box (Director tab)
+  that pivots cohorts of agents toward any genre: *"NFL is starting, let's
+  pivot some users to watch football for 7 days"* targets 25% of agents with
+  a Sports campaign for 7 days. Supports `few` (10%), `half` (50%),
+  `most` (60%), `all`/`everyone` (100%), explicit percentages, `cluster N`,
+  and `for N days`. Campaigns expire automatically; `stop campaigns` clears
+  them. API: `POST /api/direct {"text": ...}`; campaigns and the director
+  log appear in `GET /api/status` and SSE `directed` events.
+- **Why-this-was-recommended explainer** — pause the sim and click any tile
+  to get a bottom sheet listing the concrete signals behind the
+  recommendation: taste-vector contribution, prior watches in matching
+  genres (with title and day), searches (with query and day), lookalike
+  viewers, collection membership, active Director campaigns, TMDb rating,
+  release month, streaming providers. API: `GET /api/explain?agent=&item=`.
+- **Clickable cluster dots** — on the Journey tab every dot is a live agent:
+  click one for its number, archetype, cluster, top genre, play/event counts,
+  top-5 taste weights, and recent plays — with a link to the full agent
+  data-model page.
 - **Gracenote genre taste model** — the complete industry metadata taxonomy
   (Gracenote ScreenPlay): all 29 Gracenote video genres are modeled as taste
   dimensions, exactly as Gracenote provides them. Six have no titles in our
-  117-title TMDb catalog (Ambient, Erotica, Game-Show, History, News,
-  Western) — they stay in the taxonomy at ~zero weight rather than cut.
+  catalog (Ambient, Erotica, Game-Show, History, News, Western) — they stay
+  in the taxonomy at ~zero weight rather than cut.
 - **Clusters tab** — 20 taste clusters recomputed from the agents' actual
   taste vectors every simulated day. Sizes shift as the sim runs.
 - **Agents tab** — click any agent to open its **data-model page**: identity
@@ -81,6 +113,8 @@ HTTP API (all JSON):
 - `GET /api/agent?id=` — full live data model + home screen rails
 - `GET /api/journey` — 2D paths + cluster labels
 - `GET /api/search?q=&agent=` — catalog search ranked by agent taste
+- `GET /api/explain?agent=&item=` — why this title was recommended, with evidence
+- `POST /api/direct {"text": ...}` — Director manager agent: plain-English cohort pivots
 - `POST /api/click` `{"agent_id","item_id"}` — record a watch, update taste
 - `POST /api/control` `{"action":"play|pause|step|reset|speed", ...}`
 - `GET /api/stream` — SSE live event feed
