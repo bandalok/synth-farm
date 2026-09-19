@@ -72,6 +72,7 @@ TMDB_GENRE_MAP: dict[int, str] = {
     10766: "drama",       # Soap
     10767: "documentary",  # Talk
     10768: "drama",       # War & Politics
+    10770: "drama",       # TV Movie
 }
 
 #: TMDb watch-provider names -> farm app names. Names are TMDb's
