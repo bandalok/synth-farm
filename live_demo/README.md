@@ -52,9 +52,15 @@ which is already in `requirements.txt`. Works on Python 3.9+.
   pivot some users to watch football for 7 days"* targets 25% of agents with
   a Sports campaign for 7 days. Supports `few` (10%), `half` (50%),
   `most` (60%), `all`/`everyone` (100%), explicit percentages, `cluster N`,
-  and `for N days`. Campaigns expire automatically; `stop campaigns` clears
-  them. API: `POST /api/direct {"text": ...}`; campaigns and the director
-  log appear in `GET /api/status` and SSE `directed` events.
+  and `for N days`. Campaigns fade slowly and steadily — full strength on day
+  one, linearly down to a whisper on the last day — then expire automatically;
+  `stop campaigns` clears them. API: `POST /api/direct {"text": ...}`;
+  campaigns and the director log appear in `GET /api/status` and SSE
+  `directed` events.
+- **Two hand-built baseball lovers** — `persona-seamhead` (Baseball Purist:
+  52% Sports with a documentary bench, watches everything to completion) and
+  `persona-socialfan` (Social Fan: 37% Sports plus comedy/reality, searches
+  and samples). Same favorite sport, different humans.
 - **Why-this-was-recommended explainer** — pause the sim and click any tile
   to get a bottom sheet listing the concrete signals behind the
   recommendation: taste-vector contribution, prior watches in matching
