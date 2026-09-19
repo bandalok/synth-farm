@@ -51,7 +51,12 @@ which is already in `requirements.txt`. Works on Python 3.9+.
   trending / new / popular, a deliberate "Worth the
   detour" rail of top-rated picks outside the agent's usual genres (variety
   beats fatigue), and lookalike picks from the agent's cluster.
-  Rails re-rank automatically as simulated days tick. The DAY counter is
+  Rails re-rank automatically as simulated days tick, and the rows themselves
+  move up and down with the day's activity — "Because you watched" jumps up
+  right after a viewing, "Trending now" rises when the sim's watches
+  concentrate, "Viewers like you watch" climbs when the agent's cluster is
+  active, "Marathon weekend" surges on binge days. "Continue watching" stays
+  pinned at the top. The DAY counter is
   clickable — it pauses/resumes the simulation, freezing the day count.
   Clicking a tile POSTs to the sim: impression → click → play events are
   recorded, the taste vector updates, rails re-rank. Search box queries the
