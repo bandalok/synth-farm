@@ -144,29 +144,82 @@ def _derived_tags(entry: dict, gids: list) -> list:
     return tags
 
 
+# Synthetic MLB shelf appended to the catalog at load time: real baseball
+# films and documentaries so the baseball agents and MLB campaigns have
+# something to watch. (title, year, genre tags, popularity, vote_average)
+_MLB_INSERTS: tuple = (
+    ("Field of Dreams", 1989, ("Drama", "Sports", "Fantasy"), 8.2, 7.5),
+    ("Moneyball", 2011, ("Drama", "Sports"), 9.1, 7.6),
+    ("42", 2013, ("Drama", "Sports", "History"), 7.4, 7.5),
+    ("The Sandlot", 1993, ("Family", "Comedy", "Sports"), 8.0, 7.5),
+    ("Bull Durham", 1988, ("Comedy", "Romance", "Sports"), 7.1, 7.0),
+    ("A League of Their Own", 1992, ("Comedy", "Drama", "Sports"), 7.8, 7.3),
+    ("Ken Burns: Baseball", 1994, ("Documentary", "History", "Sports"), 6.5, 8.6),
+    ("The Battered Bastards of Baseball", 2014, ("Documentary", "Sports"), 6.2, 7.5),
+    ("Fastball", 2016, ("Documentary", "Sports"), 5.4, 7.0),
+    ("Screwball", 2018, ("Documentary", "Comedy", "Crime", "Sports"), 5.1, 6.8),
+    ("Knuckleball!", 2012, ("Documentary", "Sports"), 4.8, 7.1),
+    ("No No: A Dockumentary", 2014, ("Documentary", "Sports"), 4.9, 7.2),
+    ("Trouble with the Curve", 2012, ("Drama", "Sports"), 6.8, 6.8),
+    ("For Love of the Game", 1999, ("Drama", "Romance", "Sports"), 6.4, 6.6),
+    ("61*", 2001, ("Drama", "Sports"), 5.9, 7.5),
+    ("The Natural", 1984, ("Drama", "Sports"), 7.0, 7.2),
+)
+
+# Display names match the real provider mapping (HBO Max, Prime Video, ...).
+_MOCK_PROVIDER_POOL = ("Netflix", "HBO Max", "Prime Video", "Hulu", "Disney+",
+                       "Apple TV+", "Peacock", "Paramount+")
+
+
+def _mock_providers(key: str) -> list[str]:
+    """Deterministic mock 'where to watch' for titles with no provider data."""
+    h = hashlib.md5(key.encode()).digest()
+    a, b = h[0] % len(_MOCK_PROVIDER_POOL), h[1] % len(_MOCK_PROVIDER_POOL)
+    if b == a:
+        b = (b + 3) % len(_MOCK_PROVIDER_POOL)
+    return [_MOCK_PROVIDER_POOL[a], _MOCK_PROVIDER_POOL[b]]
+
+
 def _load_catalog_30(repo_root: str) -> SimpleNamespace:
-    """Load the raw TMDb fixture and tag every title in the Gracenote genre space."""
+    """Load the raw TMDb fixture and tag every title in the Gracenote genre space.
+
+    A synthetic MLB shelf (16 baseball films/docs) is appended at load time so
+    the baseball agents and MLB campaigns have something to watch. They carry
+    negative tmdb_ids and never touch the fixture file.
+    """
     path = os.path.join(repo_root, "data", "catalog_tmdb.json")
     entries = json.load(open(path))["items"]
+    for i, (title, year, tags, pop, vote) in enumerate(_MLB_INSERTS):
+        entries.append({
+            "title": title, "media_type": "movie", "tmdb_id": -(1000 + i),
+            "original_language": "en", "genre_ids": [],
+            "overview": "", "poster_path": "",
+            "release_date": f"{year}-01-01",
+            "popularity": pop, "vote_average": vote, "vote_count": 0,
+            "providers_flatrate": [], "synth_tags": list(tags),
+        })
     items = []
     for e in entries:
-        gids = e.get("genre_ids", [])
         tags: list[str] = []
-        for gid in gids:
-            b = _TMDB_BASE.get(gid)
-            if b and b not in tags:
-                tags.append(b)
-        if 10759 in gids and "Adventure" not in tags:
-            tags.append("Adventure")
-        if 10765 in gids and "Fantasy" not in tags:
-            tags.append("Fantasy")
-        for d in _derived_tags(e, gids):
-            if d not in tags:
-                tags.append(d)
-        if e.get("original_language") == "hi" and "Bollywood" not in tags:
-            tags.append("Bollywood")
-        if not tags:
-            tags = ["Drama"]
+        if "synth_tags" in e:
+            tags = list(e["synth_tags"])
+        else:
+            gids = e.get("genre_ids", [])
+            for gid in gids:
+                b = _TMDB_BASE.get(gid)
+                if b and b not in tags:
+                    tags.append(b)
+            if 10759 in gids and "Adventure" not in tags:
+                tags.append("Adventure")
+            if 10765 in gids and "Fantasy" not in tags:
+                tags.append("Fantasy")
+            for d in _derived_tags(e, gids):
+                if d not in tags:
+                    tags.append(d)
+            if e.get("original_language") == "hi" and "Bollywood" not in tags:
+                tags.append("Bollywood")
+            if not tags:
+                tags = ["Drama"]
         vec = np.zeros(len(GRACENOTE_GENRES))
         if "Bollywood" in tags:
             # Bollywood cuts across genres: half the weight on the Bollywood
@@ -189,9 +242,14 @@ def _load_catalog_30(repo_root: str) -> SimpleNamespace:
                 providers.append(app)
         media = e.get("media_type", "")
         tid = int(e["tmdb_id"])
+        item_id = f"tmdb-{media}-{tid}"
+        if not providers:
+            # Mock "where to watch": every tile gets an answer even when the
+            # real-world listing has none.
+            providers = _mock_providers(item_id)
         release = e.get("release_date") or ""
         items.append(SimpleNamespace(
-            item_id=f"tmdb-{media}-{tid}",
+            item_id=item_id,
             title=str(e.get("title") or f"Untitled {tid}"),
             primary_genre=tags[0],
             genre_tags=tuple(tags),
@@ -315,6 +373,11 @@ class LiveSim:
                          ("Comedy", 0.08)):
                 bw[self.gidx[g]] = w
             self.tastes[self.pivot_idx] = bw / bw.sum()
+        # The baseball duo keep their hand-tuned tastes instead of the cold
+        # start — the live sim reads self.tastes, not Persona.taste.
+        for p in self.personas:
+            if p.persona_id in ("persona-seamhead", "persona-socialfan"):
+                self.tastes[self.personas.index(p)] = p.taste / p.taste.sum()
         self.day = 0
         self.paths = [self.tastes.copy()]
         self.events: list[dict] = []          # global recent event feed
@@ -1066,15 +1129,21 @@ class Handler(BaseHTTPRequestHandler):
                     })
             if route == "/api/agents":
                 with sim.lock:
-                    agents = [{
-                        "id": p.persona_id, "archetype": p.archetype,
-                        "archetype_pretty": p.archetype.replace("_", " ").title(),
-                        "top_genre": sim.genres[int(sim.tastes[sim.personas.index(p)].argmax())],
-                        "n_plays": len([e for e in sim.agent_events[p.persona_id]
-                                        if e["type"] == "play"]),
-                        "cluster": int(sim.labels[sim.personas.index(p)]),
-                        "pivot": sim.personas.index(p) == sim.pivot_idx,
-                    } for p in sim.personas]
+                    agents = []
+                    for pi, p in enumerate(sim.personas):
+                        agents.append({
+                            "id": p.persona_id, "archetype": p.archetype,
+                            "archetype_pretty": p.archetype.replace("_", " ").title(),
+                            "top_genre": sim.genres[int(sim.tastes[pi].argmax())],
+                            "n_plays": len([e for e in sim.agent_events[p.persona_id]
+                                            if e["type"] == "play"]),
+                            "cluster": int(sim.labels[pi]),
+                            "pivot": pi == sim.pivot_idx,
+                            # live campaign genres hitting this agent, if any
+                            "targeted": sorted({g for c in sim.campaigns
+                                                for g in c["genres"]
+                                                if pi in c["targets"]}),
+                        })
                     return self._json({"agents": agents})
             if route == "/api/agent":
                 pid = qs.get("id", [None])[0]
