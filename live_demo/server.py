@@ -13,13 +13,38 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import queue
+import sys
 import threading
 import time
 import urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import numpy as np
+
+
+def _find_repo_root(start):
+    """Walk up from this script until we find the dir holding synth_farm/."""
+    d = os.path.abspath(start)
+    while True:
+        if os.path.isfile(os.path.join(d, "synth_farm", "__init__.py")):
+            return d
+        parent = os.path.dirname(d)
+        if parent == d:
+            return None
+        d = parent
+
+
+REPO_ROOT = _find_repo_root(os.path.dirname(os.path.abspath(__file__)))
+if REPO_ROOT is None:
+    sys.stderr.write(
+        "error: could not locate the synth-farm repo (no synth_farm/ package found\n"
+        "above this script). cd to the folder that contains BOTH 'live_demo' and\n"
+        "'synth_farm', then run:  .venv/bin/python live_demo/server.py\n"
+    )
+    sys.exit(1)
+sys.path.insert(0, REPO_ROOT)
 
 from synth_farm.config import Config
 from synth_farm.personas import generate_personas, ARCHETYPES
