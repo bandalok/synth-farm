@@ -32,7 +32,11 @@ document.querySelectorAll("nav.tabs button").forEach((b) => {
     $("tab-" + b.dataset.tab).classList.add("active");
     if (b.dataset.tab === "journey") startJourney(); else stopJourney();
     if (b.dataset.tab === "home") loadHome();
-    if (b.dataset.tab === "agents") refreshAgents();
+    if (b.dataset.tab === "agents") {
+      refreshAgents();
+      // replay a recent energy blast if the user opens the tab mid-show
+      if (performance.now() - masterEnergyStart < 8000) fireMasterEnergy();
+    }
     if (b.dataset.tab === "master" && state.status) {
       renderCampaigns(state.status.campaigns || []);
       renderMasterLog(state.status.master_log || []);
@@ -94,8 +98,13 @@ function connectStream() {
         logEvent(`<span class="e-click">click</span> ${esc(m.title)} <span style="opacity:.6">(${esc(gpretty(m.genre))})</span>`, true);
         if (state.detailId) refreshDetail();
       } else if (m.kind === "directed") {
-        $("ticker").innerHTML = `<span class="ev">${esc(m.text)}</span>`;
+        $("ticker").innerHTML = `<span class="ev">day ${m.day} ${esc(m.text)}</span>`;
         if ($("tab-master").classList.contains("active")) refreshStatus();
+        if (m.n_targets > 0) {
+          lastDirectedTargets = m.targets || [];
+          fireMasterEnergy();
+          showMasterBlast(m.day, m.text, m.n_targets);
+        }
       }
     } catch (e) { /* ignore */ }
   };
@@ -129,12 +138,16 @@ async function sendMaster() {
   inp.value = "";
 }
 function renderCampaigns(cs) {
-  $("campaigns").innerHTML = cs.length ? cs.map((c) => `
+  $("campaigns").innerHTML = cs.length ? cs.map((c) => {
+    const strength = Math.round(100 * c.days_left / Math.max(c.days_total, 1));
+    return `
     <div class="card" style="border-top:3px solid var(--amber)">
       <h3>🎭 ${esc(c.genres.join(" + "))}</h3>
       <div class="meta">${c.n_targets} agents · <b>${c.days_left}</b> days left</div>
+      <div class="bar-row" style="margin-top:8px"><div class="bar"><div class="fill" style="width:${strength}%;background:var(--amber)"></div></div><div class="val">${strength}%</div></div>
       <div class="meta" style="opacity:.7">“${esc(c.text)}”</div>
-    </div>`).join("") : `<p class="sub">No live campaigns.</p>`;
+    </div>`;
+  }).join("") : `<p class="sub">No live campaigns.</p>`;
 }
 function renderMasterLog(log) {
   $("master-log").innerHTML = log.slice().reverse().map((l) =>
@@ -150,7 +163,117 @@ function renderClusters() {
     </div>`).join("");
 }
 
+/* ---------- master agent energy blast ---------- */
+let masterToastEl = null;
+function showMasterBlast(day, text, nTargets) {
+  if (masterToastEl) masterToastEl.remove();
+  const el = document.createElement("div");
+  el.className = "master-toast";
+  el.innerHTML = `<div class="mt-text">day ${day} ${esc(text)}</div><canvas width="720" height="260"></canvas>`;
+  document.body.appendChild(el);
+  masterToastEl = el;
+  const cv = el.querySelector("canvas");
+  const ctx = cv.getContext("2d");
+  ctx.scale(2, 2);
+  const W = 360, H = 130;
+  const mx = 44, my = H / 2;
+  const k = Math.min(nTargets, 14);
+  const dots = [];
+  for (let i = 0; i < k; i++) {
+    const col = i % 2, rows = Math.ceil(k / 2), r = Math.floor(i / 2);
+    dots.push({ x: 215 + col * 65, y: 16 + r * ((H - 32) / Math.max(rows - 1, 1)) });
+  }
+  const t0 = performance.now();
+  const PULSE_DUR = 650, STAGGER = 90;
+  function frame(now) {
+    const t = now - t0;
+    ctx.clearRect(0, 0, W, H);
+    // master glow + node
+    const g = ctx.createRadialGradient(mx, my, 2, mx, my, 36);
+    g.addColorStop(0, "rgba(242,181,68,.45)");
+    g.addColorStop(1, "rgba(242,181,68,0)");
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.arc(mx, my, 36, 0, 7); ctx.fill();
+    ctx.fillStyle = "#f2b544";
+    ctx.beginPath(); ctx.arc(mx, my, 11, 0, 7); ctx.fill();
+    ctx.fillStyle = "#111"; ctx.font = "11px sans-serif"; ctx.textAlign = "center";
+    ctx.fillText("🎭", mx, my + 4);
+    // strings
+    ctx.strokeStyle = "rgba(242,181,68,.18)"; ctx.lineWidth = 1;
+    ctx.beginPath();
+    dots.forEach((d) => { ctx.moveTo(mx + 11, my); ctx.lineTo(d.x, d.y); });
+    ctx.stroke();
+    // energy pulses with trails
+    let alive = false;
+    dots.forEach((d, i) => {
+      const pt = t - i * STAGGER;
+      if (pt < 0) { alive = true; return; }
+      const p = Math.min(pt / PULSE_DUR, 1);
+      if (p < 1) alive = true;
+      const pos = (pp) => {
+        const e = pp * pp;
+        return [mx + 11 + (d.x - mx - 11) * e, my + (d.y - my) * e];
+      };
+      for (let s = 2; s >= 1; s--) {
+        const sp = Math.max(p - s * 0.07, 0);
+        if (sp <= 0) continue;
+        const [sx, sy] = pos(sp);
+        ctx.fillStyle = `rgba(242,181,68,${0.22 * (1 - s / 3)})`;
+        ctx.beginPath(); ctx.arc(sx, sy, 3, 0, 7); ctx.fill();
+      }
+      const [x, y] = pos(p);
+      ctx.shadowBlur = 14; ctx.shadowColor = "#f2b544";
+      ctx.fillStyle = "#ffd97a";
+      ctx.beginPath(); ctx.arc(x, y, 4, 0, 7); ctx.fill();
+      ctx.shadowBlur = 0;
+      if (p >= 1) {
+        const rt = (pt - PULSE_DUR) / 400;
+        if (rt < 1) {
+          alive = true;
+          ctx.strokeStyle = `rgba(242,181,68,${0.7 * (1 - rt)})`;
+          ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.arc(d.x, d.y, 4 + rt * 12, 0, 7); ctx.stroke();
+        }
+      }
+    });
+    // target dots light up on arrival
+    dots.forEach((d, i) => {
+      const arrived = t - i * STAGGER >= PULSE_DUR;
+      ctx.fillStyle = arrived ? "#ffd97a" : "rgba(255,255,255,.35)";
+      ctx.beginPath(); ctx.arc(d.x, d.y, 3, 0, 7); ctx.fill();
+    });
+    if (alive || t < 2600) requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+  el.addEventListener("click", () => { el.remove(); masterToastEl = null; });
+  setTimeout(() => {
+    if (masterToastEl !== el) return;
+    el.classList.add("out");
+    setTimeout(() => { el.remove(); if (masterToastEl === el) masterToastEl = null; }, 550);
+  }, 5200);
+}
+
 /* ---------- master agent puppet panel (agents tab) ---------- */
+/* campaign energy on the agents-tab puppet panel: when a campaign fires,
+   pulses of light race down the master agent's strings to the targets. */
+let masterEnergyStart = 0;
+let lastDirectedTargets = [];
+function fireMasterEnergy() {
+  masterEnergyStart = performance.now();
+  if ($("tab-agents").classList.contains("active")) {
+    requestAnimationFrame(masterEnergyFrame);
+  }
+}
+function masterEnergyFrame(now) {
+  drawMasterPanel();
+  if (now - masterEnergyStart < 3000
+      && $("tab-agents").classList.contains("active")) {
+    requestAnimationFrame(masterEnergyFrame);
+  } else {
+    drawMasterPanel(); // settle back to the static panel
+  }
+}
+
 function drawMasterPanel() {
   const cv = $("master-canvas");
   if (!cv || !state.agents || !state.agents.length) return;
@@ -198,6 +321,41 @@ function drawMasterPanel() {
   ctx.fillText("🎭", mx, my + 3.5);
   ctx.fillStyle = "#f5b45a"; ctx.font = "11px sans-serif"; ctx.textAlign = "left";
   ctx.fillText("MASTER AGENT", mx + 15, my + 4);
+  // energy pulses: fresh campaign targets get hit with light down their strings
+  const et = performance.now() - masterEnergyStart;
+  if (et >= 0 && et < 3000 && lastDirectedTargets.length) {
+    const tlist = lastDirectedTargets.slice(0, 60);
+    const stagger = Math.min(60, 1800 / tlist.length);
+    tlist.forEach((pi, k) => {
+      if (pi < 0 || pi >= n) return;
+      const pt = et - k * stagger;
+      if (pt < 0) return;
+      const p = Math.min(pt / 650, 1);
+      const e = p * p; // accelerate away from the master
+      const x0 = mx, y0 = my + 10, x1 = X(pi);
+      for (let s = 2; s >= 1; s--) {
+        const sp = Math.max(p - s * 0.08, 0);
+        if (sp <= 0) continue;
+        const se = sp * sp;
+        ctx.fillStyle = `rgba(245,180,90,${0.25 * (1 - s / 3)})`;
+        ctx.beginPath();
+        ctx.arc(x0 + (x1 - x0) * se, y0 + (y - y0) * se, 2.5, 0, 7);
+        ctx.fill();
+      }
+      ctx.shadowBlur = 10; ctx.shadowColor = "#f5b45a";
+      ctx.fillStyle = "#ffd97a";
+      ctx.beginPath(); ctx.arc(x0 + (x1 - x0) * e, y0 + (y - y0) * e, 3.4, 0, 7); ctx.fill();
+      ctx.shadowBlur = 0;
+      if (p >= 1) {
+        const rt = (pt - 650) / 350;
+        if (rt < 1) {
+          ctx.strokeStyle = `rgba(245,180,90,${0.6 * (1 - rt)})`;
+          ctx.lineWidth = 1.5;
+          ctx.beginPath(); ctx.arc(x1, y, 3 + rt * 9, 0, 7); ctx.stroke();
+        }
+      }
+    });
+  }
 }
 
 /* ---------- agents ---------- */
