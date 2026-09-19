@@ -39,7 +39,17 @@ class RateLimitedAdapter(PlatformAdapter):
 
     def __init__(self, inner: PlatformAdapter, max_inflight: int) -> None:
         self._inner = inner
-        self._sem = asyncio.Semaphore(max_inflight)
+        self._max_inflight = max_inflight
+        self._sem: asyncio.Semaphore | None = None
+
+    def _semaphore(self) -> asyncio.Semaphore:
+        # Created on first use inside the running loop. On Python 3.9 the
+        # primitive grabs the event loop eagerly at construction, which
+        # raises "no current event loop" once an earlier asyncio.run() has
+        # cleared the policy's loop. Lazy creation works on 3.9+.
+        if self._sem is None:
+            self._sem = asyncio.Semaphore(self._max_inflight)
+        return self._sem
 
     @property
     def inner(self) -> PlatformAdapter:
@@ -48,17 +58,17 @@ class RateLimitedAdapter(PlatformAdapter):
     async def search(
         self, query: str, user_id: str, limit: int = 10
     ) -> list[RankedItem]:
-        async with self._sem:
+        async with self._semaphore():
             return await self._inner.search(query, user_id, limit)
 
     async def recommend(
         self, user_id: str, n: int = 12, context: dict | None = None
     ) -> list[RankedItem]:
-        async with self._sem:
+        async with self._semaphore():
             return await self._inner.recommend(user_id, n, context)
 
     async def record_event(self, event: dict) -> None:
-        async with self._sem:
+        async with self._semaphore():
             await self._inner.record_event(event)
 
 
@@ -104,15 +114,32 @@ class Farm:
         self.seed = config.seed if seed is None else seed
         limited = RateLimitedAdapter(platform, config.max_inflight_requests)
         self.engine = SessionEngine(config, limited, sink)
-        self._stop = asyncio.Event()
+        self._stop: asyncio.Event | None = None
+        self._stop_requested = False
+
+    def _stop_event(self) -> asyncio.Event:
+        # Same lazy-construction rationale as RateLimitedAdapter._semaphore:
+        # creating the Event inside __init__ breaks on Python 3.9 once a
+        # previous asyncio.run() has cleared the policy's current loop.
+        if self._stop is None:
+            self._stop = asyncio.Event()
+        return self._stop
 
     def stop(self) -> None:
         """Signal all agents to stop after their current session."""
-        self._stop.set()
+        # Never touches asyncio: safe to call before run() starts, from any
+        # thread, on any Python version. run() applies it once the Event
+        # exists inside the running loop.
+        self._stop_requested = True
+        if self._stop is not None:
+            self._stop.set()
 
     async def run(self, days: int | None = None, progress: bool = True) -> FarmResult:
         days = self.config.sim_days if days is None else days
         t0 = time.perf_counter()
+        self._stop_event()  # create inside the running loop (see _stop_event)
+        if self._stop_requested:
+            self._stop.set()
 
         # Precompute every agent's schedule from its own child RNG.
         master = np.random.SeedSequence(self.seed)
@@ -177,7 +204,7 @@ class Farm:
             for idx, ((day, hour), sseed) in enumerate(
                 zip(schedule, session_seeds)
             ):
-                if self._stop.is_set():
+                if self._stop_event().is_set():
                     break
                 if self.config.agent_jitter_max_s > 0:
                     await asyncio.sleep(
