@@ -467,6 +467,17 @@ class LiveSim:
         last_play = next((e for e in reversed(evs) if e["type"] == "play"), None)
 
         rails: list[tuple[str, str, list]] = []
+        cont: list = []
+        cont_ids: set = set()
+        for e in reversed(evs):
+            if e["type"] == "play" and e["item_id"] in self.by_id:
+                it = self.by_id[e["item_id"]]
+                if it.item_id not in cont_ids:
+                    cont.append(it)
+                    cont_ids.add(it.item_id)
+            if len(cont) >= n:
+                break
+        rails.append(("Continue watching", "", j(fill(cont))))
         rails.append(("Personalized for you",
                       "ranked live against this agent's Gracenote-genre taste vector",
                       [self._item_json(it, s) for it, s in ranked[:n]]))
@@ -503,17 +514,6 @@ class LiveSim:
         rails.append(("Worth the detour",
                       "top-rated picks outside your usual genres — variety beats fatigue",
                       j(fill(detour_pool[:n], backup=detour_pool))))
-        cont: list = []
-        cont_ids: set = set()
-        for e in reversed(evs):
-            if e["type"] == "play" and e["item_id"] in self.by_id:
-                it = self.by_id[e["item_id"]]
-                if it.item_id not in cont_ids:
-                    cont.append(it)
-                    cont_ids.add(it.item_id)
-            if len(cont) >= n:
-                break
-        rails.append(("Continue watching", "", j(fill(cont))))
         by_vote = sorted((it for it in self.catalog.items if it.item_id in unseen),
                          key=lambda it: (-it.vote_average, it.item_id))
         rails.append(("Critics' picks", "highest rated of all time",
