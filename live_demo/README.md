@@ -33,12 +33,12 @@ which is already in `requirements.txt`. Works on Python 3.9+.
 
 ## What's live
 
-- **Gracenote genre taste model** — the industry metadata taxonomy (Gracenote
-  ScreenPlay): 23 of Gracenote's 29 video genres have titles in our 117-title
-  TMDb catalog (Action … Science Fiction, Romantic Comedy, SitCom, …), so the
-  live model runs on those 23. Zero-coverage genres (Erotica, Ambient,
-  Game-Show, News, Western, History) are excluded rather than modeled empty.
-- **Clusters tab** — six taste clusters recomputed from the agents' actual
+- **Gracenote genre taste model** — the complete industry metadata taxonomy
+  (Gracenote ScreenPlay): all 29 Gracenote video genres are modeled as taste
+  dimensions, exactly as Gracenote provides them. Six have no titles in our
+  117-title TMDb catalog (Ambient, Erotica, Game-Show, History, News,
+  Western) — they stay in the taxonomy at ~zero weight rather than cut.
+- **Clusters tab** — 20 taste clusters recomputed from the agents' actual
   taste vectors every simulated day. Sizes shift as the sim runs.
 - **Agents tab** — click any agent to open its **data-model page**: identity
   captured at signup, behavioral DNA inferred from usage, the live
