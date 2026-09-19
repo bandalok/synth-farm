@@ -60,7 +60,14 @@ which is already in `requirements.txt`. Works on Python 3.9+.
 - **Two hand-built baseball lovers** — `persona-seamhead` (Baseball Purist:
   52% Sports with a documentary bench, watches everything to completion) and
   `persona-socialfan` (Social Fan: 37% Sports plus comedy/reality, searches
-  and samples). Same favorite sport, different humans.
+  and samples). Same favorite sport, different humans. Their hand-tuned
+  tastes are written into the live taste array, not just the persona record.
+- **MLB shelf** — 16 baseball films and documentaries (Moneyball, Field of
+  Dreams, 42, Ken Burns: Baseball, …) appended to the catalog at load time
+  with negative TMDb ids, so the fixture file stays pristine.
+- **Where-to-watch on every tile** — real US flat-rate providers where TMDb
+  has them; a deterministic mock (Netflix, HBO Max, Prime Video, …) fills the
+  rest so no tile is ever blank. Mock only, not real-world accurate.
 - **Why-this-was-recommended explainer** — pause the sim and click any tile
   to get a bottom sheet listing the concrete signals behind the
   recommendation: taste-vector contribution, prior watches in matching
