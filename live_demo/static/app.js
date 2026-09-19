@@ -2,7 +2,7 @@
 const $ = (id) => document.getElementById(id);
 const CLUSTER_COLORS = ["#6edcaa", "#f2b544", "#7bb8f2", "#c792ea", "#e56b6b", "#8bd450"];
 const state = {
-  status: null, agents: [], homeAgent: null, homeData: null,
+  status: null, agents: [], homeAgent: null, homeData: null, lastTickDay: 0,
   detailId: null, detailAgent: null, journey: null, journeyTimer: null, showTrails: true,
 };
 
@@ -31,16 +31,19 @@ document.querySelectorAll("nav.tabs button").forEach((b) => {
     b.classList.add("active");
     $("tab-" + b.dataset.tab).classList.add("active");
     if (b.dataset.tab === "journey") startJourney(); else stopJourney();
+    if (b.dataset.tab === "home") loadHome();
   });
 });
 
 /* ---------- controls ---------- */
-$("btn-play").addEventListener("click", async () => {
+async function togglePlay() {
   const running = state.status && state.status.running;
   await api("/api/control", { method: "POST", headers: {"Content-Type": "application/json"},
     body: JSON.stringify({ action: running ? "pause" : "play" }) });
   refreshStatus();
-});
+}
+$("btn-play").addEventListener("click", togglePlay);
+$("day-counter").addEventListener("click", togglePlay);
 $("btn-step").addEventListener("click", async () => {
   await api("/api/control", { method: "POST", headers: {"Content-Type": "application/json"},
     body: JSON.stringify({ action: "step" }) });
@@ -67,6 +70,10 @@ function connectStream() {
       const m = JSON.parse(ev.data);
       if (m.kind === "tick") {
         refreshStatus();
+        if (m.day !== state.lastTickDay) {
+          state.lastTickDay = m.day;
+          if (state.homeAgent && $("tab-home").classList.contains("active")) loadHome();
+        }
         if (state.detailId) refreshDetail();
         if (m.feed && m.feed.length) {
           const html = m.feed.map((e) =>
