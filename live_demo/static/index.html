@@ -42,8 +42,9 @@
     <h2>Agents</h2>
     <p class="sub">Every agent is a synthetic viewer with a live data model: taste vector, behavior parameters, subscriptions, and a growing event history. <b>Click any agent to open its data-model page</b> — what the platform knows about the viewer, and exactly how it learned it.</p>
     <div class="master-panel">
+      <div id="master-target-note" class="master-target-note" style="display:none"></div>
       <canvas id="master-canvas"></canvas>
-      <div class="master-legend">🎭 the Master Agent holds every agent's string — <span style="color:var(--amber)">bright strings</span> are live campaign targets, the <span style="color:var(--amber)">ringed dot</span> is the ★ Bollywood pivot</div>
+      <div class="master-legend">🎭 the Master Agent holds every agent's string — <span style="color:var(--amber)">bright strings</span> + <span style="color:#4ade80">green rings</span> are live campaign targets, the <span style="color:var(--amber)">amber ring</span> is the ★ Bollywood pivot</div>
     </div>
     <div class="cards" id="agent-cards"></div>
   </section>
