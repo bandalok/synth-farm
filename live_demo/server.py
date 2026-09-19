@@ -448,6 +448,7 @@ class LiveSim:
         # pivot some users to football"). Each campaign biases the watch
         # sampling of a fixed agent subset toward target genres for N days.
         self.campaigns: list[dict] = []
+        self.campaign_history: list[dict] = []  # expired/stopped, for the timeline
         self._camp_seq = 0
         self.master_log: list[dict] = []
 
@@ -521,7 +522,7 @@ class LiveSim:
                 # campaign genres while the campaign is live.
                 camp_bw = False
                 for camp in self.campaigns:
-                    if pi in camp["targets"]:
+                    if pi in camp["targets"] and self._camp_active(camp):
                         # Campaigns fade slowly and steadily: full strength on
                         # day one, linearly down to zero on the last day.
                         w = camp["weight"] * (camp["days_left"] / camp["days_total"])
@@ -591,7 +592,34 @@ class LiveSim:
 
         self.day += 1
         for camp in self.campaigns:
-            camp["days_left"] -= 1
+            if self._camp_active(camp):
+                camp["days_left"] -= 1
+                if not camp.get("announced"):
+                    # a scheduled campaign just went live — fire its toast
+                    camp["announced"] = True
+                    who = f"{len(camp['targets'])} agents"
+                    msg = (f"🎭 Master Agent: pivoting {who} toward "
+                           f"{', '.join(camp['genres'])} for "
+                           f"{camp['days_total']} days.")
+                    self.master_log.append({"day": self.day, "text": msg})
+                    self.master_log = self.master_log[-30:]
+                    ev = {"kind": "directed", "day": self.day, "text": msg,
+                          "n_targets": len(camp["targets"]),
+                          "targets": sorted(camp["targets"])}
+                    self.events.append(ev)
+                    for q in list(self.subscribers):
+                        try:
+                            q.put_nowait(ev)
+                        except queue.Full:
+                            pass
+        for c in self.campaigns:
+            if c["days_left"] <= 0:
+                self.campaign_history.append({
+                    "id": c["id"], "text": c["text"], "genres": c["genres"],
+                    "n_targets": len(c["targets"]),
+                    "created_day": c["created_day"],
+                    "days_total": c["days_total"], "ended_day": self.day,
+                    "live": False})
         self.campaigns = [c for c in self.campaigns if c["days_left"] > 0]
         self.paths.append(self.tastes.copy())
         if len(self.paths) > 61:
@@ -713,7 +741,7 @@ class LiveSim:
         # ranking while the campaign is live.
         rank_taste = taste.copy()
         for camp in self.campaigns:
-            if pi in camp["targets"]:
+            if pi in camp["targets"] and self._camp_active(camp):
                 w = camp["weight"] * (camp["days_left"] / max(camp["days_total"], 1))
                 rank_taste = (1 - w) * rank_taste + w * camp["vec"]
                 rank_taste = rank_taste / rank_taste.sum()
@@ -876,6 +904,24 @@ class LiveSim:
                         if it.item_id in unseen and app in it.providers]
             rails.append(("app", f"On {app}", f"top picks from this agent's {app} subscription",
                           row(app_pool, k_pop)))
+        # -- campaign collections: a featured rail per live campaign targeting
+        # this agent, pinned near the top while the campaign runs --
+        camp_fade = 0.0
+        for camp in self.campaigns:
+            if pi in camp["targets"] and self._camp_active(camp):
+                g = camp["genres"][0]
+                fade = camp["days_left"] / max(camp["days_total"], 1)
+                camp_fade = max(camp_fade, fade)
+                cpool = [it for it in self.by_tag.get(g, [])
+                         if it.item_id in unseen]
+                # the synthetic MLB shelf leads a Sports collection
+                k_camp = (lambda it: (1 if it.item_id.startswith("tmdb-movie--") else 0,
+                                      it.vote_average))
+                rails.append(("campaign",
+                              f"🎭 Master Agent's {genre_pretty(g)} picks",
+                              f"the Master Agent is pivoting you toward "
+                              f"{genre_pretty(g)} — {camp['days_left']} days left",
+                              row(cpool, k_camp, want=12)))
         # -- dynamic rail ordering: rows rise and fall with the day's activity --
         # Continue watching stays pinned at the top; everything else is scored
         # from live signals each time the home screen is built.
@@ -899,6 +945,7 @@ class LiveSim:
                              and app in self.by_id[e["item_id"]].providers)
                          / max(1, len(recent)))
         scores = {
+            "campaign": 0.55 + 0.40 * camp_fade,  # featured while live, sinks as it fades
             "personalized": 0.60 + 0.15 * min(1.0, plays_today / 4),
             "genre": 0.50 + 0.50 * float(taste[order[0]]),
             "trending": min(1.0, 0.40 + 2.5 * conc),
@@ -971,7 +1018,7 @@ class LiveSim:
             signals.append(f"Surfaced in “{in_rails[0]}”{extra}")
 
         for camp in self.campaigns:
-            if pi in camp["targets"] and any(
+            if pi in camp["targets"] and self._camp_active(camp) and any(
                     vec[self.gidx[g]] > 0.25 for g in camp["genres"]):
                 signals.append(
                     f"🎭 Master Agent — “{camp['text'][:70]}” is steering "
@@ -1054,21 +1101,48 @@ class LiveSim:
             coverage, cluster = 0.1, None
         else:  # "some", "a few users", or unspecified
             coverage, cluster = 0.25, None
+        # scheduling: "from day 11 to day 20", "starting day 11 for 7 days",
+        # "on day 15" (days then come from the "N days" clause or default 7)
+        start_day = self.day
+        sm = re.search(r"from day (\d+)\s+to day (\d+)", t)
+        sm2 = re.search(r"starting day (\d+)\s+for (\d+)\s*days?", t)
+        sm3 = re.search(r"\bon day (\d+)\b", t)
+        days = int(dm.group(1)) if dm else 7
+        if sm:
+            start_day, end_day = int(sm.group(1)), int(sm.group(2))
+            days = max(end_day - start_day, 1)
+        elif sm2:
+            start_day, days = int(sm2.group(1)), max(int(sm2.group(2)), 1)
+        elif sm3:
+            start_day = int(sm3.group(1))
+        start_day = max(start_day, self.day)  # past start = fire now
         return {"action": "start", "genres": genres, "coverage": coverage,
-                "cluster": cluster, "days": int(dm.group(1)) if dm else 7}
+                "cluster": cluster, "days": days, "start_day": start_day}
+
+    def _camp_active(self, c: dict) -> bool:
+        """A campaign only steers the sim once its start day arrives."""
+        return c["start_day"] <= self.day
 
     def _campaigns_json(self) -> list[dict]:
         return [{"id": c["id"], "text": c["text"], "genres": c["genres"],
                  "n_targets": len(c["targets"]), "targets": sorted(c["targets"]),
                  "weight": c["weight"],
                  "days_left": c["days_left"], "days_total": c["days_total"],
-                 "created_day": c["created_day"]}
+                 "created_day": c["created_day"], "start_day": c["start_day"],
+                 "status": "live" if self._camp_active(c) else "scheduled"}
                 for c in self.campaigns]
 
     def direct(self, text: str) -> dict:
         """The manager agent: turn a plain-English directive into a campaign."""
         parsed = self.parse_directive(text)
         if parsed["action"] == "stop":
+            for c in self.campaigns:
+                self.campaign_history.append({
+                    "id": c["id"], "text": c["text"], "genres": c["genres"],
+                    "n_targets": len(c["targets"]),
+                    "created_day": c["created_day"],
+                    "days_total": c["days_total"], "ended_day": self.day,
+                    "live": False})
             n = len(self.campaigns)
             self.campaigns.clear()
             msg = f"Master Agent stopped {n} campaign(s)."
@@ -1091,23 +1165,36 @@ class LiveSim:
                     "genres": parsed["genres"], "targets": targets,
                     "vec": vec, "weight": 0.45,
                     "days_left": parsed["days"], "days_total": parsed["days"],
-                    "created_day": self.day}
+                    "created_day": self.day, "start_day": parsed["start_day"]}
             self.campaigns.append(camp)
             who = (f"cluster {parsed['cluster']}" if parsed["cluster"] is not None
                    else f"{len(targets)} agents")
-            msg = (f"🎭 Master Agent: pivoting {who} toward "
-                   f"{', '.join(parsed['genres'])} for {parsed['days']} days.")
+            if parsed["start_day"] <= self.day:
+                msg = (f"🎭 Master Agent: pivoting {who} toward "
+                       f"{', '.join(parsed['genres'])} for {parsed['days']} days.")
+                camp["announced"] = True
+            else:
+                end = parsed["start_day"] + parsed["days"] - 1
+                msg = (f"🎭 Master Agent: scheduled {', '.join(parsed['genres'])} "
+                       f"for {who} — days {parsed['start_day']}–{end}.")
+                camp["announced"] = False
         self.master_log.append({"day": self.day, "text": msg})
         self.master_log = self.master_log[-30:]
         n_targets = len(targets) if parsed["action"] == "start" else 0
         ev_targets = sorted(targets) if parsed["action"] == "start" else []
-        self.events.append({"kind": "directed", "day": self.day, "text": msg,
-                            "n_targets": n_targets, "targets": ev_targets})
+        # scheduled campaigns announce quietly — the energy blast fires when
+        # the campaign actually goes live (see tick()).
+        scheduled = (parsed["action"] == "start"
+                     and parsed["start_day"] > self.day)
+        ev = {"kind": "directed", "day": self.day, "text": msg,
+              "n_targets": 0 if scheduled else n_targets,
+              "targets": [] if scheduled else ev_targets,
+              "scheduled": scheduled}
+        self.events.append(ev)
         self.events = self.events[-200:]
         for q in list(self.subscribers):
             try:
-                q.put_nowait({"kind": "directed", "day": self.day, "text": msg,
-                              "n_targets": n_targets, "targets": ev_targets})
+                q.put_nowait(ev)
             except queue.Full:
                 pass
         return {"ok": True, "message": msg,
@@ -1176,6 +1263,7 @@ class Handler(BaseHTTPRequestHandler):
                                     "titles": len(sim.by_tag.get(g, []))}
                                    for g in sim.genres],
                         "campaigns": sim._campaigns_json(),
+                        "campaign_history": sim.campaign_history[-20:],
                         "master_log": sim.master_log[-10:],
                     })
             if route == "/api/agents":
@@ -1195,7 +1283,13 @@ class Handler(BaseHTTPRequestHandler):
                             # live campaign genres hitting this agent, if any
                             "targeted": sorted({g for c in sim.campaigns
                                                 for g in c["genres"]
-                                                if pi in c["targets"]}),
+                                                if pi in c["targets"]
+                                                and sim._camp_active(c)}),
+                            # scheduled-but-not-yet-live campaign genres
+                            "scheduled": sorted({g for c in sim.campaigns
+                                                 for g in c["genres"]
+                                                 if pi in c["targets"]
+                                                 and not sim._camp_active(c)}),
                         })
                     return self._json({"agents": agents})
             if route == "/api/agent":
@@ -1222,7 +1316,7 @@ class Handler(BaseHTTPRequestHandler):
                         "campaigns": [
                             {"id": c["id"], "genres": c["genres"],
                              "targets": sorted(c["targets"])}
-                            for c in sim.campaigns
+                            for c in sim.campaigns if sim._camp_active(c)
                         ],
                     })
             if route == "/api/search":
