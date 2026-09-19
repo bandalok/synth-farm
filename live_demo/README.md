@@ -47,7 +47,7 @@ which is already in `requirements.txt`. Works on Python 3.9+.
   (rating), Viewers like you (cluster consumption), Hidden gems (best of the
   low-popularity), Marathon weekend, and On {app}. Titles may repeat across
   rows, but no two rows share the same order.
-- **🎬 Director manager agent** — a plain-English command box (Director tab)
+- **🎭 Master Agent** — a plain-English command box (Master Agent tab)
   that pivots cohorts of agents toward any genre: *"NFL is starting, let's
   pivot some users to watch football for 7 days"* targets 25% of agents with
   a Sports campaign for 7 days. Supports `few` (10%), `half` (50%),
@@ -59,7 +59,7 @@ which is already in `requirements.txt`. Works on Python 3.9+.
   to get a bottom sheet listing the concrete signals behind the
   recommendation: taste-vector contribution, prior watches in matching
   genres (with title and day), searches (with query and day), lookalike
-  viewers, collection membership, active Director campaigns, TMDb rating,
+  viewers, collection membership, active Master Agent campaigns, TMDb rating,
   release month, streaming providers. API: `GET /api/explain?agent=&item=`.
 - **Clickable cluster dots** — on the Journey tab every dot is a live agent:
   click one for its number, archetype, cluster, top genre, play/event counts,
@@ -114,7 +114,7 @@ HTTP API (all JSON):
 - `GET /api/journey` — 2D paths + cluster labels
 - `GET /api/search?q=&agent=` — catalog search ranked by agent taste
 - `GET /api/explain?agent=&item=` — why this title was recommended, with evidence
-- `POST /api/direct {"text": ...}` — Director manager agent: plain-English cohort pivots
+- `POST /api/direct {"text": ...}` — Master Agent: plain-English cohort pivots
 - `POST /api/click` `{"agent_id","item_id"}` — record a watch, update taste
 - `POST /api/control` `{"action":"play|pause|step|reset|speed", ...}`
 - `GET /api/stream` — SSE live event feed
