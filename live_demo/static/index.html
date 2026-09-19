@@ -29,7 +29,7 @@
   <button data-tab="agents">Agents</button>
   <button data-tab="home">Home Screen</button>
   <button data-tab="journey">Journey</button>
-  <button data-tab="director">🎬 Director</button>
+  <button data-tab="master">🎭 Master Agent</button>
 </nav>
 <main>
   <section id="tab-clusters" class="tab active">
@@ -72,18 +72,18 @@
     <div class="journey-legend" id="journey-legend"></div>
   </section>
 
-  <section id="tab-director" class="tab">
-    <h2>Director — the manager agent</h2>
-    <p class="sub">One agent above the rest. Give it a plain-English directive — <i>“NFL is starting, pivot some users to football for 7 days”</i> — and it spins up a time-limited campaign that steers the targeted agents' watching toward those genres. Campaigns decay automatically; <i>“stop campaigns”</i> kills them all. Targets: <i>some / half / all / 30% / cluster 3</i>.</p>
+  <section id="tab-master" class="tab">
+    <h2>🎭 Master Agent</h2>
+    <p class="sub">The puppet master. Give it a plain-English directive — <i>“NFL is starting, pivot some users to football for 7 days”</i> — and it spins up a time-limited campaign that steers the targeted agents' watching toward those genres. Campaigns decay automatically; <i>“stop campaigns”</i> kills them all. Targets: <i>some / half / all / 30% / cluster 3</i>.</p>
     <div class="search-row">
-      <input id="direct-input" type="text" placeholder="Pivot some users to football for 7 days…" autocomplete="off">
-      <button id="direct-go" class="go-btn">Direct</button>
+      <input id="master-input" type="text" placeholder="Pivot some users to football for 7 days…" autocomplete="off">
+      <button id="master-go" class="go-btn">Command</button>
     </div>
-    <div class="hint" id="direct-msg">No directive yet — try one above.</div>
+    <div class="hint" id="master-msg">No directive yet — try one above.</div>
     <h3 style="margin-top:10px">Live campaigns</h3>
     <div class="cards" id="campaigns"></div>
-    <h3 style="margin-top:14px">Director log</h3>
-    <div id="direct-log" class="eventlog"></div>
+    <h3 style="margin-top:14px">Master Agent log</h3>
+    <div id="master-log" class="eventlog"></div>
   </section>
 
   <div id="explainer" class="explainer" hidden>
