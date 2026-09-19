@@ -60,9 +60,13 @@ from synth_farm.collections import score_titles
 # Source: Gracenote ScreenPlay Catalog Access docs (devportal.gracenote.com) —
 # the industry metadata taxonomy used across streaming/TV platforms.
 # All 29 Gracenote video genres are modeled as taste dimensions, exactly as
-# Gracenote provides them. Six have no titles in our 117-title TMDb catalog
+# Gracenote provides them. Six have no titles in our TMDb catalog
 # (Ambient, Erotica, Game-Show, History, News, Western) — they stay in the
 # taxonomy at ~zero weight rather than being cut.
+# "Bollywood" is a 30th, non-Gracenote dimension: it is how viewers actually
+# browse (Hindi cinema cuts across Drama/Romance/Musical/Action), so it earns
+# its own taste axis. Titles with original_language == "hi" get Bollywood
+# weight in their genre vector.
 # ----------------------------------------------------------------------------
 GRACENOTE_GENRES = [
     "Action", "Adventure", "Ambient", "Animation", "Biography", "Comedy",
@@ -70,12 +74,36 @@ GRACENOTE_GENRES = [
     "Game-Show", "History", "Horror", "Music", "Musical", "Mystery",
     "News", "Reality", "Religious", "Romance", "Romantic Comedy",
     "Science Fiction", "SitCom", "Sports", "Thriller", "War", "Western",
+    "Bollywood",
 ]
 
 
 def genre_pretty(g: str) -> str:
     # Gracenote names are already display-ready.
     return g
+
+
+# Director-agent command vocabulary: everyday words -> taste dimensions.
+DIRECTOR_GENRES = {
+    "football": "Sports", "nfl": "Sports", "sports": "Sports",
+    "soccer": "Sports", "basketball": "Sports", "cricket": "Sports",
+    "ipl": "Sports", "tennis": "Sports", "f1": "Sports",
+    "bollywood": "Bollywood", "hindi": "Bollywood", "desi": "Bollywood",
+    "horror": "Horror", "scary": "Horror",
+    "comedy": "Comedy", "funny": "Comedy", "sitcom": "SitCom",
+    "drama": "Drama", "romance": "Romance", "romcom": "Romantic Comedy",
+    "action": "Action", "thriller": "Thriller",
+    "sci-fi": "Science Fiction", "scifi": "Science Fiction",
+    "sci fi": "Science Fiction", "space": "Science Fiction",
+    "documentary": "Documentary", "docuseries": "Documentary",
+    "reality": "Reality", "crime": "Crime", "mystery": "Mystery",
+    "fantasy": "Fantasy", "adventure": "Adventure",
+    "animation": "Animation", "anime": "Animation",
+    "family": "Family", "kids": "Family",
+    "music": "Music", "musical": "Musical", "news": "News",
+    "war": "War", "western": "Western", "history": "History",
+    "religious": "Religious", "biography": "Biography",
+}
 
 
 _TMDB_BASE = {
@@ -134,11 +162,25 @@ def _load_catalog_30(repo_root: str) -> SimpleNamespace:
         for d in _derived_tags(e, gids):
             if d not in tags:
                 tags.append(d)
+        if e.get("original_language") == "hi" and "Bollywood" not in tags:
+            tags.append("Bollywood")
         if not tags:
             tags = ["Drama"]
         vec = np.zeros(len(GRACENOTE_GENRES))
-        for t in tags:
-            vec[GRACENOTE_GENRES.index(t)] = 1.0 / len(tags)
+        if "Bollywood" in tags:
+            # Bollywood cuts across genres: half the weight on the Bollywood
+            # axis, half spread over the title's Gracenote genres.
+            others = [t for t in tags if t != "Bollywood"]
+            bi = GRACENOTE_GENRES.index("Bollywood")
+            if others:
+                vec[bi] = 0.5
+                for t in others:
+                    vec[GRACENOTE_GENRES.index(t)] = 0.5 / len(others)
+            else:
+                vec[bi] = 1.0
+        else:
+            for t in tags:
+                vec[GRACENOTE_GENRES.index(t)] = 1.0 / len(tags)
         providers: list[str] = []
         for pname in e.get("providers_flatrate", []):
             app = PROVIDER_APP_MAP.get(pname)
@@ -199,6 +241,16 @@ class LiveSim:
 
         # Cold start: near-uniform tastes. Behavior params stay distinct.
         self.tastes = self.rng.dirichlet(np.full(len(self.genres), 5.0), size=n_agents)
+        # Agent #7 (index 6): the dedicated Bollywood pivot — a Bollywood-heavy
+        # taste vector so the sim always has a desi audience to program for.
+        self.pivot_idx = 6 if n_agents > 6 else None
+        if self.pivot_idx is not None:
+            bw = np.full(len(self.genres), 0.015)
+            bw[self.gidx["Bollywood"]] = 0.45
+            for g, w in (("Musical", 0.12), ("Romance", 0.12), ("Drama", 0.10),
+                         ("Comedy", 0.08)):
+                bw[self.gidx[g]] = w
+            self.tastes[self.pivot_idx] = bw / bw.sum()
         self.day = 0
         self.paths = [self.tastes.copy()]
         self.events: list[dict] = []          # global recent event feed
@@ -213,7 +265,7 @@ class LiveSim:
         self.global_trend = np.ones(len(self.genres)) / len(self.genres)
 
         # Emergent clusters via warm-started k-means on tastes.
-        self.k = 20
+        self.k = min(20, n_agents)
         self.centroids = self.tastes[self.rng.choice(n_agents, self.k, replace=False)]
         self.labels = np.zeros(n_agents, dtype=int)
         self._recluster()
@@ -223,6 +275,13 @@ class LiveSim:
         self.running = False
         self.subscribers: list[queue.Queue] = []
         self._stop = threading.Event()
+
+        # Director agent: natural-language pivot campaigns ("NFL is starting,
+        # pivot some users to football"). Each campaign biases the watch
+        # sampling of a fixed agent subset toward target genres for N days.
+        self.campaigns: list[dict] = []
+        self._camp_seq = 0
+        self.director_log: list[dict] = []
 
     # -- clustering / projection ------------------------------------------------
     def _recluster(self):
@@ -287,6 +346,12 @@ class LiveSim:
                 mix = (0.6 * self.tastes[pi] + 0.25 * self.cluster_trend[p.archetype]
                        + 0.15 * self.global_trend)
                 mix = mix / mix.sum()
+                # Director campaigns: pivot this agent's sampling toward the
+                # campaign genres while the campaign is live.
+                for camp in self.campaigns:
+                    if pi in camp["targets"]:
+                        mix = (1 - camp["weight"]) * mix + camp["weight"] * camp["vec"]
+                        mix = mix / mix.sum()
                 if rng.random() < p.search_propensity:
                     g = self.genres[int(rng.integers(len(self.genres)))]
                     alpha, kind = 0.05, "search"
@@ -332,6 +397,9 @@ class LiveSim:
         self.day_cluster_plays = day_cluster
 
         self.day += 1
+        for camp in self.campaigns:
+            camp["days_left"] -= 1
+        self.campaigns = [c for c in self.campaigns if c["days_left"] > 0]
         self.paths.append(self.tastes.copy())
         if len(self.paths) > 61:
             self.paths.pop(0)
@@ -415,6 +483,7 @@ class LiveSim:
                                "query": e.get("query")}
                               for e in evs[-14:][::-1]],
             "cluster": int(self.labels[pi]),
+            "is_pivot": pi == self.pivot_idx,
             "home_screen": self.home_screen(p),
         }
 
@@ -451,24 +520,43 @@ class LiveSim:
         ranked_items = [it for it, _ in ranked]
         unseen = {it.item_id for it in ranked_items}
 
-        def fill(items: list, want: int = n, backup: list | None = None) -> list:
-            """Top up a short rail so every row is full (default backup: taste-ranked)."""
-            src = ranked_items if backup is None else backup
-            have = {it.item_id for it in items}
-            out = list(items)
-            for it in src:
-                if len(out) >= want:
-                    break
-                if it.item_id not in have:
-                    out.append(it)
-                    have.add(it.item_id)
-            return out[:want]
-
         def pool(genre: str) -> list:
             return [it for it in self.by_tag.get(genre, []) if it.item_id in unseen]
 
         def j(items: list) -> list:
             return [self._item_json(it) for it in items]
+
+        # Per-rail orderings: repeats across rows are fine, identical order is
+        # not. Each rail sorts by its own key and tops up from unseen titles
+        # in that same key order — never the global taste ranking, which used
+        # to make every rail's tail an identical copy.
+        score_of = {it.item_id: float(s) for it, s in ranked}
+        unseen_items = [it for it in self.catalog.items if it.item_id in unseen]
+        k_taste = lambda it: score_of.get(it.item_id, 0.0)
+        k_pop = lambda it: it.popularity
+        k_vote = lambda it: it.vote_average
+        k_new = lambda it: it.release_date or ""
+        k_trend = lambda it: (float(self.genre_plays[self.gidx[it.primary_genre]]),
+                              it.popularity)
+
+        def row(pool_items: list, key, reverse: bool = True,
+                exclude: set = frozenset(), want: int = n) -> list:
+            picked: list = []
+            seen_ids = set(exclude)
+            for it in sorted(pool_items, key=key, reverse=reverse):
+                if it.item_id not in seen_ids:
+                    seen_ids.add(it.item_id)
+                    picked.append(it)
+                if len(picked) >= want:
+                    break
+            if len(picked) < want:
+                for it in sorted(unseen_items, key=key, reverse=reverse):
+                    if it.item_id not in seen_ids:
+                        seen_ids.add(it.item_id)
+                        picked.append(it)
+                    if len(picked) >= want:
+                        break
+            return [self._item_json(x) for x in picked]
 
         order = np.argsort(taste)[::-1]
         g1, g2 = self.genres[order[0]], self.genres[order[1]]
@@ -486,66 +574,78 @@ class LiveSim:
                     cont_ids.add(it.item_id)
             if len(cont) >= n:
                 break
-        rails.append(("continue", "Continue watching", "", j(fill(cont))))
+        cw = list(cont[:n])  # recency order; top up with taste-ranked unseen
+        if len(cw) < n:
+            have = {it.item_id for it in cw}
+            for it in ranked_items:
+                if it.item_id not in have:
+                    cw.append(it)
+                    have.add(it.item_id)
+                if len(cw) >= n:
+                    break
+        rails.append(("continue", "Continue watching", "", j(cw)))
         rails.append(("personalized", "Personalized for you",
                       "ranked live against this agent's Gracenote-genre taste vector",
                       [self._item_json(it, s) for it, s in ranked[:n]]))
         rails.append(("genre", f"Because of your interest in {genre_pretty(g1)}", "",
-                      j(fill(pool(g1)))))
+                      row(pool(g1), k_vote)))
         trending_idx = np.argsort(self.genre_plays)[::-1][:3]
         trending_genres = {self.genres[i] for i in trending_idx if self.genre_plays[i] > 0}
         tr_pool = [it for it in ranked_items if it.primary_genre in trending_genres]
+        if tr_pool:
+            tr_key = k_trend
+        else:
+            # Day 0: no daily signal yet. Popular titles weighted by this
+            # agent's taste — a different order from "Popular right now".
+            tr_pool = [it for it in self.catalog.items if it.item_id in unseen]
+            tr_key = lambda it: k_taste(it) * it.popularity
         rails.append(("trending", "Trending now", "what the whole simulation is watching today",
-                      j(fill(tr_pool))))
-        new_pool = sorted(
-            (it for it in self.catalog.items
-             if it.item_id in unseen and it.release_date >= "2026-08-01"),
-            key=lambda it: -it.popularity)
+                      row(tr_pool, tr_key)))
+        new_cands = [it for it in self.catalog.items
+                     if it.item_id in unseen and it.release_date >= "2026-08-01"]
         rails.append(("new", "New this month", "released in the last 60 days",
-                      j(fill(new_pool[:n]))))
+                      row(new_cands, k_new)))
         if last_play and last_play["item_id"] in self.by_id:
+            anchor = np.asarray(self.by_id[last_play["item_id"]].genre_vector,
+                                dtype=float)
+            k_sim = lambda it: float(np.dot(
+                anchor, np.asarray(it.genre_vector, dtype=float)))
             bw_pool = [it for it in pool(last_play["genre"])
                        if it.item_id != last_play["item_id"]]
             rails.append(("because_watched", f"Because you watched {last_play['title']}", "",
-                          j(fill(bw_pool))))
+                          row(bw_pool, k_sim)))
         else:
+            # No plays yet: second-favorite genre ordered by rating, so this
+            # row never mirrors the Marathon row's popularity order.
             rails.append(("because_watched", f"More {genre_pretty(g2)}", "your second-favorite genre",
-                          j(fill(pool(g2)))))
-        by_pop = sorted((it for it in self.catalog.items if it.item_id in unseen),
-                        key=lambda it: -it.popularity)
+                          row(pool(g2), k_vote)))
+        pop_all = [it for it in self.catalog.items if it.item_id in unseen]
         rails.append(("popular", "Popular right now", "highest TMDb popularity today",
-                      j(fill(by_pop[:n]))))
+                      row(pop_all, k_pop)))
         top5 = {self.genres[i] for i in order[:5]}
-        detour_pool = sorted(
-            (it for it in self.catalog.items
-             if it.item_id in unseen and it.primary_genre not in top5),
-            key=lambda it: (-it.vote_average, -it.popularity))
+        detour_pool = [it for it in self.catalog.items
+                       if it.item_id in unseen and it.primary_genre not in top5]
         rails.append(("detour", "Worth the detour",
                       "top-rated picks outside your usual genres — variety beats fatigue",
-                      j(fill(detour_pool[:n], backup=detour_pool))))
-        by_vote = sorted((it for it in self.catalog.items if it.item_id in unseen),
-                         key=lambda it: (-it.vote_average, it.item_id))
+                      row(detour_pool, k_taste)))
         rails.append(("critics", "Critics' picks", "highest rated of all time",
-                      j(fill(by_vote[:n]))))
+                      row(pop_all, k_vote)))
         fav = self._cluster_favorites(pi, unseen, n)
+        fav_ids = {it.item_id for it in fav}
         rails.append(("lookalike", "Viewers like you watch",
-                      f"most played in cluster {int(self.labels[pi])} today",
-                      j(fill(fav))))
-        hidden_pool = by_pop[len(by_pop) // 2:]
-        gems = sorted(hidden_pool,
-                      key=lambda it: -float(np.dot(taste, it.genre_vector)))
+                      f"most played in cluster {lab} today",
+                      j(fav) + row([], k_taste, exclude=fav_ids, want=n - len(fav))))
+        hidden_pool = sorted(pop_all, key=k_pop)[:len(pop_all) // 2]
         rails.append(("gems", "Hidden gems for you", "high taste match, low popularity",
-                      j(fill(gems[:n]))))
+                      row(hidden_pool, k_vote)))
         rails.append(("marathon", f"Marathon weekend: {genre_pretty(g2)}", "",
-                      j(fill(pool(g2)))))
+                      row(pool(g2), k_pop)))
         app = p.subscribed_apps[0] if p.subscribed_apps else None
         if app:
-            app_pool = sorted(
-                (it for it in self.catalog.items
-                 if it.item_id in unseen and app in it.providers),
-                key=lambda it: -float(np.dot(taste, it.genre_vector)))
+            app_pool = [it for it in self.catalog.items
+                        if it.item_id in unseen and app in it.providers]
             rails.append(("app", f"On {app}", f"top picks from this agent's {app} subscription",
-                          j(fill(app_pool))))
+                          row(app_pool, k_pop)))
         # -- dynamic rail ordering: rows rise and fall with the day's activity --
         # Continue watching stays pinned at the top; everything else is scored
         # from live signals each time the home screen is built.
@@ -560,7 +660,7 @@ class LiveSim:
         csize = int((self.labels == lab).sum())
         cplays = self.day_cluster_plays.get(lab, 0)
         watched_n = len(self.watched[p.persona_id])
-        new_frac = len(new_pool) / max(
+        new_frac = len(new_cands) / max(
             1, sum(1 for it in self.catalog.items if it.release_date >= "2026-08-01"))
         app_share = 0.0
         if app:
@@ -587,6 +687,77 @@ class LiveSim:
                                          -scores.get(pk[1][0], 0.5), pk[0]))
         return {"rails": [{"title": t, "why": w, "items": items}
                           for _, (key, t, w, items) in ordered]}
+
+    def explain(self, persona_id: str, item_id: str) -> dict:
+        """Why was this title recommended? Concrete signals, no hand-waving."""
+        p = next((pp for pp in self.personas if pp.persona_id == persona_id), None)
+        if p is None or item_id not in self.by_id:
+            return {"title": "", "signals": []}
+        pi = self.personas.index(p)
+        taste = self.tastes[pi]
+        it = self.by_id[item_id]
+        vec = np.asarray(it.genre_vector, dtype=float)
+        signals: list[str] = []
+
+        contrib = taste * vec
+        for gi in np.argsort(contrib)[::-1][:2]:
+            if contrib[gi] > 0.004:
+                g = genre_pretty(self.genres[gi])
+                signals.append(
+                    f"Taste match — your {g} weight is {taste[gi]:.2f} and "
+                    f"this title is {vec[gi]:.0%} {g}")
+
+        pg = self.genres[int(np.argmax(vec))]
+        plays = [e for e in reversed(self.agent_events[persona_id])
+                 if e["type"] == "play" and e["item_id"] != item_id
+                 and e["item_id"] in self.by_id
+                 and pg in self.by_id[e["item_id"]].genre_tags][:3]
+        for e in plays:
+            signals.append(
+                f"You watched “{e['title']}” on day {e['day']} — it's "
+                f"{genre_pretty(pg)} too, the same shelf as this title")
+        for e in [x for x in reversed(self.agent_events[persona_id])
+                  if x["type"] == "search"][:2]:
+            signals.append(
+                f"You searched “{e.get('query') or genre_pretty(e['genre'])}” "
+                f"on day {e['day']}")
+
+        lab = int(self.labels[pi])
+        mates = sum(
+            1 for qi, q in enumerate(self.personas)
+            if qi != pi and int(self.labels[qi]) == lab
+            and any(x["type"] == "play" and x["item_id"] == item_id
+                    for x in self.agent_events[q.persona_id][-80:]))
+        if mates:
+            signals.append(
+                f"{mates} viewer{'s' if mates != 1 else ''} in your cluster "
+                f"watched this too")
+
+        hs = self.home_screen(p)
+        in_rails = [r["title"] for r in hs["rails"]
+                    if any(x["id"] == item_id for x in r["items"])]
+        if in_rails:
+            extra = f" (+{len(in_rails) - 1} more)" if len(in_rails) > 1 else ""
+            signals.append(f"Surfaced in “{in_rails[0]}”{extra}")
+
+        for camp in self.campaigns:
+            if pi in camp["targets"] and any(
+                    vec[self.gidx[g]] > 0.25 for g in camp["genres"]):
+                signals.append(
+                    f"Director push — “{camp['text'][:70]}” is steering "
+                    f"viewers like you toward this")
+                break
+
+        if it.vote_average:
+            signals.append(f"TMDb audience score {it.vote_average:.1f}/10")
+        if it.release_date and len(it.release_date) >= 7:
+            signals.append(f"Released {it.release_date[:7]}")
+        if it.providers:
+            signals.append(f"Streaming on {' · '.join(it.providers[:3])}")
+
+        d = self._item_json(it)
+        d["signals"] = signals[:8]
+        return d
 
     def search(self, q: str, persona_id: str | None = None, n: int = 12) -> list[dict]:
         ql = q.lower().strip()
@@ -623,6 +794,88 @@ class LiveSim:
         with self.lock:
             self.__init__(n_agents=self.n_agents, seed=seed or self.seed,
                           tick_seconds=self.tick_seconds)
+
+    # -- director agent ---------------------------------------------------------
+    def parse_directive(self, text: str) -> dict:
+        t = text.lower()
+        if re.search(r"\b(stop|cancel|end|kill)\b", t) and "campaign" in t or \
+           re.search(r"\b(stop|cancel|end)\s+(all\s+)?campaigns?\b", t):
+            return {"action": "stop"}
+        genres: list[str] = []
+        for kw, g in DIRECTOR_GENRES.items():
+            if re.search(r"\b" + re.escape(kw) + r"\b", t) and g not in genres:
+                genres.append(g)
+        if not genres:
+            return {"action": "unknown"}
+        m = re.search(r"(\d+)\s*%", t)
+        cm = re.search(r"cluster\s*#?\s*(\d+)", t)
+        dm = re.search(r"(\d+)\s*days?", t)
+        if cm:
+            coverage, cluster = 0.0, int(cm.group(1))
+        elif re.search(r"\b(all|everyone|everybody)\b", t):
+            coverage, cluster = 1.0, None
+        elif m:
+            coverage, cluster = min(1.0, int(m.group(1)) / 100), None
+        elif re.search(r"\bhalf\b", t):
+            coverage, cluster = 0.5, None
+        elif re.search(r"\bmost\b", t):
+            coverage, cluster = 0.6, None
+        elif re.search(r"\bfew\b", t):
+            coverage, cluster = 0.1, None
+        else:  # "some", "a few users", or unspecified
+            coverage, cluster = 0.25, None
+        return {"action": "start", "genres": genres, "coverage": coverage,
+                "cluster": cluster, "days": int(dm.group(1)) if dm else 7}
+
+    def _campaigns_json(self) -> list[dict]:
+        return [{"id": c["id"], "text": c["text"], "genres": c["genres"],
+                 "n_targets": len(c["targets"]), "weight": c["weight"],
+                 "days_left": c["days_left"], "created_day": c["created_day"]}
+                for c in self.campaigns]
+
+    def direct(self, text: str) -> dict:
+        """The manager agent: turn a plain-English directive into a campaign."""
+        parsed = self.parse_directive(text)
+        if parsed["action"] == "stop":
+            n = len(self.campaigns)
+            self.campaigns.clear()
+            msg = f"Director stopped {n} campaign(s)."
+        elif parsed["action"] == "unknown":
+            msg = ("Director didn't catch that — try “pivot some users to "
+                   "football for 7 days” or “stop campaigns”.")
+        else:
+            self._camp_seq += 1
+            if parsed["cluster"] is not None:
+                targets = {i for i in range(self.n_agents)
+                           if int(self.labels[i]) == parsed["cluster"]}
+            else:
+                k = max(1, int(parsed["coverage"] * self.n_agents))
+                targets = set(self.rng.choice(
+                    self.n_agents, k, replace=False).tolist())
+            vec = np.zeros(len(self.genres))
+            for g in parsed["genres"]:
+                vec[self.gidx[g]] = 1.0 / len(parsed["genres"])
+            camp = {"id": self._camp_seq, "text": text,
+                    "genres": parsed["genres"], "targets": targets,
+                    "vec": vec, "weight": 0.45,
+                    "days_left": parsed["days"], "created_day": self.day}
+            self.campaigns.append(camp)
+            who = (f"cluster {parsed['cluster']}" if parsed["cluster"] is not None
+                   else f"{len(targets)} agents")
+            msg = (f"🎬 Director: pivoting {who} toward "
+                   f"{', '.join(parsed['genres'])} for {parsed['days']} days.")
+        self.director_log.append({"day": self.day, "text": msg})
+        self.director_log = self.director_log[-30:]
+        self.events.append({"kind": "directed", "day": self.day, "text": msg})
+        self.events = self.events[-200:]
+        for q in list(self.subscribers):
+            try:
+                q.put_nowait({"kind": "directed", "day": self.day, "text": msg})
+            except queue.Full:
+                pass
+        return {"ok": True, "message": msg,
+                "campaigns": self._campaigns_json(),
+                "log": self.director_log[-10:]}
 
 
 # ----------------------------------------------------------------------------
@@ -685,6 +938,8 @@ class Handler(BaseHTTPRequestHandler):
                         "genres": [{"key": g, "name": genre_pretty(g),
                                     "titles": len(sim.by_tag.get(g, []))}
                                    for g in sim.genres],
+                        "campaigns": sim._campaigns_json(),
+                        "director_log": sim.director_log[-10:],
                     })
             if route == "/api/agents":
                 with sim.lock:
@@ -695,6 +950,7 @@ class Handler(BaseHTTPRequestHandler):
                         "n_plays": len([e for e in sim.agent_events[p.persona_id]
                                         if e["type"] == "play"]),
                         "cluster": int(sim.labels[sim.personas.index(p)]),
+                        "pivot": sim.personas.index(p) == sim.pivot_idx,
                     } for p in sim.personas]
                     return self._json({"agents": agents})
             if route == "/api/agent":
@@ -722,6 +978,11 @@ class Handler(BaseHTTPRequestHandler):
                 pid = qs.get("agent", [None])[0]
                 with sim.lock:
                     return self._json({"results": sim.search(q, pid)})
+            if route == "/api/explain":
+                pid = qs.get("agent", [None])[0]
+                iid = qs.get("item", [None])[0]
+                with sim.lock:
+                    return self._json(sim.explain(pid, iid))
             if route == "/api/stream":
                 return self._sse()
             self.send_error(404)
@@ -740,6 +1001,10 @@ class Handler(BaseHTTPRequestHandler):
                 except KeyError:
                     return self._error(404, "unknown agent or title")
                 return self._json(result)
+            if url.path == "/api/direct":
+                text = data.get("text", "")
+                with sim.lock:
+                    return self._json(sim.direct(text))
             if url.path == "/api/control":
                 action = data.get("action")
                 with sim.lock:
