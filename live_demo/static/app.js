@@ -39,13 +39,16 @@ document.querySelectorAll("nav.tabs button").forEach((b) => {
     }
     if (b.dataset.tab === "master" && state.status) {
       renderCampaigns(state.status.campaigns || []);
+      renderCampaignTimeline();
       renderMasterLog(state.status.master_log || []);
     }
   });
 });
 $("master-go").addEventListener("click", sendMaster);
+$("camp-timeline-toggle").addEventListener("change", renderCampaignTimeline);
 $("master-input").addEventListener("keydown", (e) => { if (e.key === "Enter") sendMaster(); });
 $("explainer-x").addEventListener("click", () => { $("explainer").hidden = true; });
+renderMasterSuggestions();
 
 /* ---------- controls ---------- */
 async function togglePlay() {
@@ -120,6 +123,7 @@ async function refreshStatus() {
   renderClusters();
   if ($("tab-master").classList.contains("active")) {
     renderCampaigns(state.status.campaigns || []);
+    renderCampaignTimeline();
     renderMasterLog(state.status.master_log || []);
   }
   if ($("tab-agents").classList.contains("active")) {
@@ -131,6 +135,22 @@ async function refreshStatus() {
   }
 }
 /* ---------- master agent ---------- */
+const MASTER_SUGGESTIONS = [
+  ["⚾", "Baseball blast", "pivot all users to baseball from day 11 to day 20"],
+  ["🎃", "Horror nights", "pivot some users to horror on day 5 for 3 days"],
+  ["🚀", "Sci-fi weekend", "pivot half the users to sci-fi starting day 8 for 4 days"],
+  ["💘", "Romance week", "pivot 30% of users to romance from day 14 to day 21"],
+  ["🤣", "Comedy · cluster 2", "pivot cluster 2 to comedy for 7 days"],
+];
+function renderMasterSuggestions() {
+  $("master-sugg").innerHTML = MASTER_SUGGESTIONS.map(([emo, label, text], i) =>
+    `<button class="sugg-chip" data-i="${i}">${emo} ${esc(label)}</button>`).join("");
+  $("master-sugg").querySelectorAll(".sugg-chip").forEach((b) =>
+    b.addEventListener("click", () => {
+      $("master-input").value = MASTER_SUGGESTIONS[+b.dataset.i][2];
+      $("master-input").focus();
+    }));
+}
 async function sendMaster() {
   const inp = $("master-input");
   const text = inp.value.trim();
@@ -140,17 +160,20 @@ async function sendMaster() {
     body: JSON.stringify({ text }) });
   $("master-msg").innerHTML = esc(r.message);
   renderCampaigns(r.campaigns || []);
+  if (state.status) state.status.campaigns = r.campaigns || [];
+  renderCampaignTimeline();
   renderMasterLog(r.log || []);
   inp.value = "";
 }
 function renderCampaigns(cs) {
   $("campaigns").innerHTML = cs.length ? cs.map((c) => {
     const strength = Math.round(100 * c.days_left / Math.max(c.days_total, 1));
+    const sched = c.status === "scheduled";
     return `
-    <div class="card" style="border-top:3px solid var(--amber)">
-      <h3>🎭 ${esc(c.genres.join(" + "))}</h3>
-      <div class="meta">${c.n_targets} agents · <b>${c.days_left}</b> days left</div>
-      <div class="bar-row" style="margin-top:8px"><div class="bar"><div class="fill" style="width:${strength}%;background:var(--amber)"></div></div><div class="val">${strength}%</div></div>
+    <div class="card" style="border-top:3px solid ${sched ? "var(--teal)" : "var(--amber)"}">
+      <h3>🎭 ${esc(c.genres.join(" + "))}${sched ? " <span class='pin'>📅 scheduled</span>" : ""}</h3>
+      <div class="meta">${c.n_targets} agents · ${sched ? `<b>starts day ${c.start_day}</b>` : `<b>${c.days_left}</b> days left`}</div>
+      <div class="bar-row" style="margin-top:8px"><div class="bar"><div class="fill" style="width:${strength}%;background:${sched ? "var(--teal)" : "var(--amber)"}"></div></div><div class="val">${strength}%</div></div>
       <div class="meta" style="opacity:.7">“${esc(c.text)}”</div>
     </div>`;
   }).join("") : `<p class="sub">No live campaigns.</p>`;
@@ -158,6 +181,50 @@ function renderCampaigns(cs) {
 function renderMasterLog(log) {
   $("master-log").innerHTML = log.slice().reverse().map((l) =>
     `<div class="ev"><span class="dim">day ${l.day}</span>${esc(l.text)}</div>`).join("");
+}
+/* ---------- campaign timeline (checkbox-gated) ---------- */
+function renderCampaignTimeline() {
+  const box = $("camp-timeline");
+  if ($("camp-timeline-toggle").checked) box.hidden = false;
+  else { box.hidden = true; return; }
+  const st = state.status || {};
+  const day = st.day || 0;
+  const rows = [];
+  for (const c of (st.campaigns || []))
+    rows.push({ genres: c.genres, n: c.n_targets, start: c.start_day,
+                end: c.start_day + c.days_total, live: c.status === "live",
+                left: c.days_left });
+  for (const h of (st.campaign_history || []))
+    rows.push({ genres: h.genres, n: h.n_targets, start: h.created_day,
+                end: h.created_day + h.days_total, live: false });
+  if (!rows.length) {
+    box.innerHTML = `<p class="sub">No campaigns yet — fire one above and it lands here.</p>`;
+    return;
+  }
+  rows.sort((a, b) => b.start - a.start || b.end - a.end);
+  const lo = Math.min(day, ...rows.map((r) => r.start));
+  const hi = Math.max(day + 1, ...rows.map((r) => r.end));
+  const span = Math.max(hi - lo, 1);
+  const pct = (d) => (100 * (d - lo) / span).toFixed(1);
+  box.innerHTML = `
+    <div class="tl-axis"><span>day ${lo}</span><span class="tl-today">▼ today · day ${day}</span><span>day ${hi}</span></div>
+    ${rows.map((r) => {
+      const l = pct(r.start), w = Math.max(pct(r.end) - pct(r.start), 1.5);
+      const today = pct(day);
+      const dot = r.live ? "🟢" : (r.start > day ? "📅" : "⚫");
+      const sub = r.live ? ` · ${r.left}d left`
+        : (r.start > day ? ` · starts day ${r.start}` : "");
+      return `<div class="tl-row">
+        <div class="tl-label">${dot} <b>${esc(r.genres.join(" + "))}</b>
+          <span class="dim">${r.n} agents${sub}</span></div>
+        <div class="tl-track">
+          <div class="tl-todayline" style="left:${today}%"></div>
+          <div class="tl-bar ${r.live ? "live" : (r.start > day ? "sched" : "done")}" style="left:${l}%;width:${w}%"
+               title="days ${r.start}–${r.end}"></div>
+        </div>
+      </div>`;
+    }).join("")}
+    <p class="sub" style="margin-top:6px">🟢 live · 📅 scheduled — fires on its start day · ⚫ finished.</p>`;
 }
 function renderClusters() {
   const cl = state.status.clusters;
@@ -393,7 +460,7 @@ async function refreshAgents() {
   $("agent-cards").innerHTML = d.agents.map((a) => `
     <div class="card${(a.targeted && a.targeted.length) ? " targeted" : ""}" data-id="${a.id}">
       <h3>${esc(a.archetype_pretty)}</h3>
-      <div class="meta">${a.id} · cluster <b style="color:${CLUSTER_COLORS[a.cluster % 6]}">${a.cluster}</b>${pinBadge(a)}${(a.targeted && a.targeted.length) ? ` · <span class="tgt">🎯 ${esc(a.targeted.join(" + "))} energy</span>` : ""}</div>
+      <div class="meta">${a.id} · cluster <b style="color:${CLUSTER_COLORS[a.cluster % 6]}">${a.cluster}</b>${pinBadge(a)}${(a.targeted && a.targeted.length) ? ` · <span class="tgt">🎯 ${esc(a.targeted.join(" + "))} energy</span>` : ""}${(a.scheduled && a.scheduled.length) ? ` · <span class="pin">📅 ${esc(a.scheduled.join(" + "))} scheduled</span>` : ""}</div>
       <div class="meta">into <b>${esc(a.top_genre)}</b> · ${a.n_plays} plays</div>
     </div>`).join("");
   // remember which campaign targeting the cards reflect, so the live poller
