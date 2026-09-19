@@ -205,6 +205,8 @@ class LiveSim:
         self.agent_events: dict[str, list[dict]] = {p.persona_id: [] for p in self.personas}
         self.watched: dict[str, set[str]] = {p.persona_id: set() for p in self.personas}
         self.genre_plays = np.zeros(len(self.genres))  # live trending counts
+        self.day_genre_total = np.zeros(len(self.genres))  # genre counts, latest tick
+        self.day_cluster_plays: dict[int, int] = {}        # cluster plays, latest tick
 
         self.cluster_trend = {a.name: np.ones(len(self.genres)) / len(self.genres)
                               for a in ARCHETYPES}
@@ -276,8 +278,10 @@ class LiveSim:
         rng = self.rng
         day_counts = {a.name: np.zeros(len(self.genres)) for a in ARCHETYPES}
         day_total = np.zeros(len(self.genres))
+        day_cluster: dict[int, int] = {}
         feed = []
         for pi, p in enumerate(self.personas):
+            lab = int(self.labels[pi])
             n_watch = int(rng.poisson(4.0) + 1)
             for _ in range(n_watch):
                 mix = (0.6 * self.tastes[pi] + 0.25 * self.cluster_trend[p.archetype]
@@ -311,6 +315,8 @@ class LiveSim:
                 self.watched[p.persona_id].add(item.item_id)
                 day_counts[p.archetype][self.gidx[g]] += 1
                 day_total[self.gidx[g]] += 1
+                if kind == "play":
+                    day_cluster[lab] = day_cluster.get(lab, 0) + 1
                 if len(feed) < 6 and rng.random() < 0.3:
                     feed.append(ev)
         for a in ARCHETYPES:
@@ -322,6 +328,8 @@ class LiveSim:
         if tot > 0:
             self.genre_plays += day_total
             self.global_trend = 0.5 * self.global_trend + 0.5 * day_total / tot
+        self.day_genre_total = day_total
+        self.day_cluster_plays = day_cluster
 
         self.day += 1
         self.paths.append(self.tastes.copy())
@@ -435,6 +443,7 @@ class LiveSim:
 
     def home_screen(self, p, n: int = 20) -> dict:
         pi = self.personas.index(p)
+        lab = int(self.labels[pi])
         taste = self.tastes[pi]
         seen = self.watched[p.persona_id]
         ranked = [(it, s) for it, s in score_titles(taste, self.catalog)
@@ -466,7 +475,7 @@ class LiveSim:
         evs = self.agent_events[p.persona_id]
         last_play = next((e for e in reversed(evs) if e["type"] == "play"), None)
 
-        rails: list[tuple[str, str, list]] = []
+        rails: list[tuple[str, str, str, list]] = []
         cont: list = []
         cont_ids: set = set()
         for e in reversed(evs):
@@ -477,57 +486,57 @@ class LiveSim:
                     cont_ids.add(it.item_id)
             if len(cont) >= n:
                 break
-        rails.append(("Continue watching", "", j(fill(cont))))
-        rails.append(("Personalized for you",
+        rails.append(("continue", "Continue watching", "", j(fill(cont))))
+        rails.append(("personalized", "Personalized for you",
                       "ranked live against this agent's Gracenote-genre taste vector",
                       [self._item_json(it, s) for it, s in ranked[:n]]))
-        rails.append((f"Because of your interest in {genre_pretty(g1)}", "",
+        rails.append(("genre", f"Because of your interest in {genre_pretty(g1)}", "",
                       j(fill(pool(g1)))))
         trending_idx = np.argsort(self.genre_plays)[::-1][:3]
         trending_genres = {self.genres[i] for i in trending_idx if self.genre_plays[i] > 0}
         tr_pool = [it for it in ranked_items if it.primary_genre in trending_genres]
-        rails.append(("Trending now", "what the whole simulation is watching today",
+        rails.append(("trending", "Trending now", "what the whole simulation is watching today",
                       j(fill(tr_pool))))
         new_pool = sorted(
             (it for it in self.catalog.items
              if it.item_id in unseen and it.release_date >= "2026-08-01"),
             key=lambda it: -it.popularity)
-        rails.append(("New this month", "released in the last 60 days",
+        rails.append(("new", "New this month", "released in the last 60 days",
                       j(fill(new_pool[:n]))))
         if last_play and last_play["item_id"] in self.by_id:
             bw_pool = [it for it in pool(last_play["genre"])
                        if it.item_id != last_play["item_id"]]
-            rails.append((f"Because you watched {last_play['title']}", "",
+            rails.append(("because_watched", f"Because you watched {last_play['title']}", "",
                           j(fill(bw_pool))))
         else:
-            rails.append((f"More {genre_pretty(g2)}", "your second-favorite genre",
+            rails.append(("because_watched", f"More {genre_pretty(g2)}", "your second-favorite genre",
                           j(fill(pool(g2)))))
         by_pop = sorted((it for it in self.catalog.items if it.item_id in unseen),
                         key=lambda it: -it.popularity)
-        rails.append(("Popular right now", "highest TMDb popularity today",
+        rails.append(("popular", "Popular right now", "highest TMDb popularity today",
                       j(fill(by_pop[:n]))))
         top5 = {self.genres[i] for i in order[:5]}
         detour_pool = sorted(
             (it for it in self.catalog.items
              if it.item_id in unseen and it.primary_genre not in top5),
             key=lambda it: (-it.vote_average, -it.popularity))
-        rails.append(("Worth the detour",
+        rails.append(("detour", "Worth the detour",
                       "top-rated picks outside your usual genres — variety beats fatigue",
                       j(fill(detour_pool[:n], backup=detour_pool))))
         by_vote = sorted((it for it in self.catalog.items if it.item_id in unseen),
                          key=lambda it: (-it.vote_average, it.item_id))
-        rails.append(("Critics' picks", "highest rated of all time",
+        rails.append(("critics", "Critics' picks", "highest rated of all time",
                       j(fill(by_vote[:n]))))
         fav = self._cluster_favorites(pi, unseen, n)
-        rails.append(("Viewers like you watch",
+        rails.append(("lookalike", "Viewers like you watch",
                       f"most played in cluster {int(self.labels[pi])} today",
                       j(fill(fav))))
         hidden_pool = by_pop[len(by_pop) // 2:]
         gems = sorted(hidden_pool,
                       key=lambda it: -float(np.dot(taste, it.genre_vector)))
-        rails.append(("Hidden gems for you", "high taste match, low popularity",
+        rails.append(("gems", "Hidden gems for you", "high taste match, low popularity",
                       j(fill(gems[:n]))))
-        rails.append((f"Marathon weekend: {genre_pretty(g2)}", "",
+        rails.append(("marathon", f"Marathon weekend: {genre_pretty(g2)}", "",
                       j(fill(pool(g2)))))
         app = p.subscribed_apps[0] if p.subscribed_apps else None
         if app:
@@ -535,10 +544,49 @@ class LiveSim:
                 (it for it in self.catalog.items
                  if it.item_id in unseen and app in it.providers),
                 key=lambda it: -float(np.dot(taste, it.genre_vector)))
-            rails.append((f"On {app}", f"top picks from this agent's {app} subscription",
+            rails.append(("app", f"On {app}", f"top picks from this agent's {app} subscription",
                           j(fill(app_pool))))
+        # -- dynamic rail ordering: rows rise and fall with the day's activity --
+        # Continue watching stays pinned at the top; everything else is scored
+        # from live signals each time the home screen is built.
+        plays_today = sum(1 for e in evs if e["type"] == "play" and e["day"] == self.day)
+        rec = 0.0
+        if last_play:
+            d = self.day - last_play["day"]
+            rec = 1.0 if d <= 0 else (0.5 if d == 1 else 0.15)
+        ent = float(-(taste * np.log(taste + 1e-12)).sum() / np.log(len(taste)))
+        dts = float(self.day_genre_total.sum())
+        conc = float(self.day_genre_total.max() / dts) if dts > 0 else 0.0
+        csize = int((self.labels == lab).sum())
+        cplays = self.day_cluster_plays.get(lab, 0)
+        watched_n = len(self.watched[p.persona_id])
+        new_frac = len(new_pool) / max(
+            1, sum(1 for it in self.catalog.items if it.release_date >= "2026-08-01"))
+        app_share = 0.0
+        if app:
+            recent = [e for e in reversed(evs) if e["type"] == "play"][:40]
+            app_share = (sum(1 for e in recent if e["item_id"] in self.by_id
+                             and app in self.by_id[e["item_id"]].providers)
+                         / max(1, len(recent)))
+        scores = {
+            "personalized": 0.60 + 0.15 * min(1.0, plays_today / 4),
+            "genre": 0.50 + 0.50 * float(taste[order[0]]),
+            "trending": min(1.0, 0.40 + 2.5 * conc),
+            "new": 0.45 + 0.30 * new_frac,
+            "because_watched": 0.35 + 0.50 * rec,
+            "popular": 0.52,
+            "detour": 0.35 + 0.50 * (1.0 - ent),
+            "critics": 0.48,
+            "lookalike": 0.35 + 0.50 * min(1.0, cplays / max(1, csize * 3)),
+            "gems": 0.35 + 0.40 * min(1.0, watched_n / 60),
+            "marathon": 0.80 if plays_today >= 6 else 0.40,
+            "app": 0.40 + 0.40 * app_share,
+        }
+        ordered = sorted(enumerate(rails),
+                         key=lambda pk: (0 if pk[1][0] == "continue" else 1,
+                                         -scores.get(pk[1][0], 0.5), pk[0]))
         return {"rails": [{"title": t, "why": w, "items": items}
-                          for t, w, items in rails]}
+                          for _, (key, t, w, items) in ordered]}
 
     def search(self, q: str, persona_id: str | None = None, n: int = 12) -> list[dict]:
         ql = q.lower().strip()
