@@ -32,6 +32,7 @@ document.querySelectorAll("nav.tabs button").forEach((b) => {
     $("tab-" + b.dataset.tab).classList.add("active");
     if (b.dataset.tab === "journey") startJourney(); else stopJourney();
     if (b.dataset.tab === "home") loadHome();
+    if (b.dataset.tab === "agents") refreshAgents();
     if (b.dataset.tab === "master" && state.status) {
       renderCampaigns(state.status.campaigns || []);
       renderMasterLog(state.status.master_log || []);
@@ -112,6 +113,7 @@ async function refreshStatus() {
     renderCampaigns(state.status.campaigns || []);
     renderMasterLog(state.status.master_log || []);
   }
+  if ($("tab-agents").classList.contains("active")) drawMasterPanel();
 }
 /* ---------- master agent ---------- */
 async function sendMaster() {
@@ -148,6 +150,56 @@ function renderClusters() {
     </div>`).join("");
 }
 
+/* ---------- master agent puppet panel (agents tab) ---------- */
+function drawMasterPanel() {
+  const cv = $("master-canvas");
+  if (!cv || !state.agents || !state.agents.length) return;
+  const dpr = window.devicePixelRatio || 1;
+  const W = cv.clientWidth, H = 132;
+  if (!W) return;
+  cv.width = W * dpr; cv.height = H * dpr;
+  const ctx = cv.getContext("2d");
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, W, H);
+  const n = state.agents.length;
+  const mx = W / 2, my = 22;
+  const y = H - 16, pad = 16;
+  const X = (i) => n === 1 ? mx : pad + (i * (W - 2 * pad)) / (n - 1);
+  const targeted = new Set();
+  ((state.status && state.status.campaigns) || [])
+    .forEach((c) => (c.targets || []).forEach((i) => targeted.add(i)));
+  // one string per agent: faint for all, bright for live campaign targets
+  ctx.lineWidth = 1;
+  [["rgba(245,180,90,0.13)", false], ["rgba(245,180,90,0.45)", true]]
+    .forEach(([style, want]) => {
+      ctx.strokeStyle = style;
+      ctx.beginPath();
+      state.agents.forEach((a, i) => {
+        if (targeted.has(i) !== want) return;
+        ctx.moveTo(mx, my + 10);
+        ctx.lineTo(X(i), y);
+      });
+      ctx.stroke();
+    });
+  // agent dots, cluster-colored
+  state.agents.forEach((a, i) => {
+    const x = X(i);
+    ctx.fillStyle = CLUSTER_COLORS[a.cluster % 6];
+    ctx.beginPath(); ctx.arc(x, y, targeted.has(i) ? 3.6 : 2.8, 0, 7); ctx.fill();
+    if (a.pivot) {
+      ctx.strokeStyle = "#f5b45a"; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.arc(x, y, 6.5, 0, 7); ctx.stroke();
+    }
+  });
+  // master node on top
+  ctx.fillStyle = "#f5b45a";
+  ctx.beginPath(); ctx.arc(mx, my, 9, 0, 7); ctx.fill();
+  ctx.fillStyle = "#111"; ctx.font = "10px sans-serif"; ctx.textAlign = "center";
+  ctx.fillText("🎭", mx, my + 3.5);
+  ctx.fillStyle = "#f5b45a"; ctx.font = "11px sans-serif"; ctx.textAlign = "left";
+  ctx.fillText("MASTER AGENT", mx + 15, my + 4);
+}
+
 /* ---------- agents ---------- */
 async function refreshAgents() {
   const d = await api("/api/agents");
@@ -170,6 +222,7 @@ async function refreshAgents() {
     pick.value = state.homeAgent;
     loadHome();
   }
+  drawMasterPanel();
 }
 /* ---------- agent data-model page ---------- */
 async function openAgentPage(id) {
