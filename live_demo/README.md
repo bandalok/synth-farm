@@ -47,10 +47,12 @@ which is already in `requirements.txt`. Works on Python 3.9+.
   and a live event stream.
 - **Home Screen tab** — 13 collections of 20 titles, ranked live against the
   selected agent's *current* Gracenote-genre taste vector
-  (`collections.score_titles`).
-  Taste rails up top, then trending / new / popular, a deliberate "Worth the
+  (`collections.score_titles`). "Continue watching" leads, then taste rails,
+  trending / new / popular, a deliberate "Worth the
   detour" rail of top-rated picks outside the agent's usual genres (variety
   beats fatigue), and lookalike picks from the agent's cluster.
+  Rails re-rank automatically as simulated days tick. The DAY counter is
+  clickable — it pauses/resumes the simulation, freezing the day count.
   Clicking a tile POSTs to the sim: impression → click → play events are
   recorded, the taste vector updates, rails re-rank. Search box queries the
   117-title real catalog, ranked by the agent's taste.
