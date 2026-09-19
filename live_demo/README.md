@@ -33,15 +33,23 @@ which is already in `requirements.txt`. Works on Python 3.9+.
 
 ## What's live
 
+- **30-genre taste model** — TMDb's native genres plus derived sub-genres
+  (anime, k-drama, true-crime, superhero, sitcom, …) detected from title /
+  language signals. Every genre has real catalog titles behind it.
 - **Clusters tab** — six taste clusters recomputed from the agents' actual
   taste vectors every simulated day. Sizes shift as the sim runs.
-- **Agents tab** — every agent's live data model: taste vector, behavior
-  params, subscriptions, growing event history.
-- **Home Screen tab** — rails ranked live against the selected agent's
-  *current* taste vector (`collections.score_titles`). Clicking a tile POSTs
-  to the sim: impression → click → play events are recorded, the taste vector
-  updates, rails re-rank. Search box queries the 117-title real catalog,
-  ranked by the agent's taste.
+- **Agents tab** — click any agent to open its **data-model page**: identity
+  captured at signup, behavioral DNA inferred from usage, the live 30-genre
+  taste vector, a "how data is collected" pipeline (observe → learn → cluster
+  → rank), the event taxonomy with live counts, and a live event stream.
+- **Home Screen tab** — 13 collections of 20 titles, ranked live against the
+  selected agent's *current* 30-genre taste vector (`collections.score_titles`).
+  Taste rails up top, then trending / new / popular, a deliberate "Worth the
+  detour" rail of top-rated picks outside the agent's usual genres (variety
+  beats fatigue), and lookalike picks from the agent's cluster.
+  Clicking a tile POSTs to the sim: impression → click → play events are
+  recorded, the taste vector updates, rails re-rank. Search box queries the
+  117-title real catalog, ranked by the agent's taste.
 - **Journey tab** — 240 dots walk from a day-0 cold-start crowd into emergent
   clusters as simulated days tick. Trails show each agent's path.
 - **Event ticker** — server-sent events stream live watches/searches.
