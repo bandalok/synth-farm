@@ -32,14 +32,14 @@ document.querySelectorAll("nav.tabs button").forEach((b) => {
     $("tab-" + b.dataset.tab).classList.add("active");
     if (b.dataset.tab === "journey") startJourney(); else stopJourney();
     if (b.dataset.tab === "home") loadHome();
-    if (b.dataset.tab === "director" && state.status) {
+    if (b.dataset.tab === "master" && state.status) {
       renderCampaigns(state.status.campaigns || []);
-      renderDirectLog(state.status.director_log || []);
+      renderMasterLog(state.status.master_log || []);
     }
   });
 });
-$("direct-go").addEventListener("click", sendDirect);
-$("direct-input").addEventListener("keydown", (e) => { if (e.key === "Enter") sendDirect(); });
+$("master-go").addEventListener("click", sendMaster);
+$("master-input").addEventListener("keydown", (e) => { if (e.key === "Enter") sendMaster(); });
 $("explainer-x").addEventListener("click", () => { $("explainer").hidden = true; });
 
 /* ---------- controls ---------- */
@@ -94,7 +94,7 @@ function connectStream() {
         if (state.detailId) refreshDetail();
       } else if (m.kind === "directed") {
         $("ticker").innerHTML = `<span class="ev">${esc(m.text)}</span>`;
-        if ($("tab-director").classList.contains("active")) refreshStatus();
+        if ($("tab-master").classList.contains("active")) refreshStatus();
       }
     } catch (e) { /* ignore */ }
   };
@@ -108,34 +108,34 @@ async function refreshStatus() {
   $("day-num").textContent = state.status.day;
   $("btn-play").textContent = state.status.running ? "⏸ Pause" : "▶ Play";
   renderClusters();
-  if ($("tab-director").classList.contains("active")) {
+  if ($("tab-master").classList.contains("active")) {
     renderCampaigns(state.status.campaigns || []);
-    renderDirectLog(state.status.director_log || []);
+    renderMasterLog(state.status.master_log || []);
   }
 }
-/* ---------- director ---------- */
-async function sendDirect() {
-  const inp = $("direct-input");
+/* ---------- master agent ---------- */
+async function sendMaster() {
+  const inp = $("master-input");
   const text = inp.value.trim();
   if (!text) return;
   const r = await api("/api/direct", { method: "POST",
     headers: {"Content-Type": "application/json"},
     body: JSON.stringify({ text }) });
-  $("direct-msg").innerHTML = esc(r.message);
+  $("master-msg").innerHTML = esc(r.message);
   renderCampaigns(r.campaigns || []);
-  renderDirectLog(r.log || []);
+  renderMasterLog(r.log || []);
   inp.value = "";
 }
 function renderCampaigns(cs) {
   $("campaigns").innerHTML = cs.length ? cs.map((c) => `
     <div class="card" style="border-top:3px solid var(--amber)">
-      <h3>🎬 ${esc(c.genres.join(" + "))}</h3>
+      <h3>🎭 ${esc(c.genres.join(" + "))}</h3>
       <div class="meta">${c.n_targets} agents · <b>${c.days_left}</b> days left</div>
       <div class="meta" style="opacity:.7">“${esc(c.text)}”</div>
     </div>`).join("") : `<p class="sub">No live campaigns.</p>`;
 }
-function renderDirectLog(log) {
-  $("direct-log").innerHTML = log.slice().reverse().map((l) =>
+function renderMasterLog(log) {
+  $("master-log").innerHTML = log.slice().reverse().map((l) =>
     `<div class="ev"><span class="dim">day ${l.day}</span>${esc(l.text)}</div>`).join("");
 }
 function renderClusters() {
@@ -384,14 +384,39 @@ function drawJourney() {
     }
     ctx.globalAlpha = 1;
   }
-  // dots (clickable — positions cached for hit-testing)
-  state.journeyDots = [];
+  // dots: positions computed first so the Master Agent's puppet strings
+  // can anchor to them (clickable — positions cached for hit-testing)
+  const dots = [];
   for (let i = 0; i < n; i++) {
     const p = j.paths[i][Math.min(day, j.paths[i].length - 1)];
-    const dx = px(p[0]), dy = py(p[1]);
-    ctx.fillStyle = CLUSTER_COLORS[j.labels[i] % 6];
-    ctx.beginPath(); ctx.arc(dx, dy, 3.2, 0, 7); ctx.fill();
-    state.journeyDots.push({ x: dx, y: dy, i });
+    dots.push({ x: px(p[0]), y: py(p[1]), i });
+  }
+  // puppet strings: a very slight thin line from the Master Agent node to
+  // every agent a live campaign is steering — drawn under the dots
+  const camps = j.campaigns || [];
+  const mx = W / 2, my = 16;
+  if (camps.length) {
+    ctx.strokeStyle = "rgba(245, 180, 90, 0.22)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    camps.forEach((c) => c.targets.forEach((i) => {
+      const d = dots[i];
+      if (d) { ctx.moveTo(mx, my); ctx.lineTo(d.x, d.y); }
+    }));
+    ctx.stroke();
+  }
+  state.journeyDots = [];
+  for (const d of dots) {
+    ctx.fillStyle = CLUSTER_COLORS[j.labels[d.i] % 6];
+    ctx.beginPath(); ctx.arc(d.x, d.y, 3.2, 0, 7); ctx.fill();
+    state.journeyDots.push(d);
+  }
+  // Master Agent node on top
+  if (camps.length) {
+    ctx.fillStyle = "#f5b45a";
+    ctx.beginPath(); ctx.arc(mx, my, 6, 0, 7); ctx.fill();
+    ctx.font = "11px sans-serif";
+    ctx.fillText("🎭 MASTER AGENT", mx + 11, my + 4);
   }
   // cluster labels
   ctx.font = "12px sans-serif";
@@ -409,7 +434,8 @@ function drawJourney() {
     <span class="lg"><span class="sw" style="background:${CLUSTER_COLORS[k % 6]}"></span>
     ${esc(c.name)} <span class="ct">(${c.size})</span></span>`).join("") +
     `<span class="lg ct">day ${day} · ${n} agents</span>
-     <span class="lg"><label style="cursor:pointer"><input type="checkbox" id="trails-cb" ${state.showTrails ? "checked" : ""}> trails</label></span>`;
+     <span class="lg"><label style="cursor:pointer"><input type="checkbox" id="trails-cb" ${state.showTrails ? "checked" : ""}> trails</label></span>` +
+    ((j.campaigns || []).length ? `<span class="lg" style="color:var(--amber)">🎭 master agent pulling strings</span>` : "");
   const cb = $("trails-cb");
   if (cb) cb.addEventListener("change", (e) => { state.showTrails = e.target.checked; drawJourney(); });
 }
