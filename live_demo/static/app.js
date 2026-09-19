@@ -187,14 +187,14 @@ function renderAgentPage(a) {
         <div><b>Titles / session</b>${a.mean_units}<span class="note">binge depth</span></div>
       </div></div>
   </div>
-  <h3 class="ap-sec">3 · Taste vector — learned, all 30 genres</h3>
+  <h3 class="ap-sec">3 · Taste vector — learned, all Gracenote genres</h3>
   <p class="sub">Every play and search nudges these weights. They always sum to 100%.</p>
   <div class="card">${tasteBars(a.taste)}</div>
   <h3 class="ap-sec">4 · How data is collected</h3>
   <div class="pipe">
     <div class="step"><div class="n">1</div><b>Observe.</b><p>Every impression, click, play and
       search is logged with day, title, genre and query. <b>${a.n_events} events</b> so far for this viewer.</p></div>
-    <div class="step"><div class="n">2</div><b>Learn.</b><p>Each event nudges the 30-genre taste
+    <div class="step"><div class="n">2</div><b>Learn.</b><p>Each event nudges the Gracenote-genre taste
       vector: <span class="mono">new = 0.88 × old + 0.12 × title</span>. Latest update:</p>${luHtml}</div>
     <div class="step"><div class="n">3</div><b>Cluster.</b><p>Every simulated day, k-means re-fits
       6 clusters over all ${state.status ? state.status.n_agents : ""} live taste vectors.
