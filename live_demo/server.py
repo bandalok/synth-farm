@@ -882,7 +882,8 @@ class LiveSim:
 
     def _campaigns_json(self) -> list[dict]:
         return [{"id": c["id"], "text": c["text"], "genres": c["genres"],
-                 "n_targets": len(c["targets"]), "weight": c["weight"],
+                 "n_targets": len(c["targets"]), "targets": sorted(c["targets"]),
+                 "weight": c["weight"],
                  "days_left": c["days_left"], "created_day": c["created_day"]}
                 for c in self.campaigns]
 
