@@ -32,8 +32,15 @@ document.querySelectorAll("nav.tabs button").forEach((b) => {
     $("tab-" + b.dataset.tab).classList.add("active");
     if (b.dataset.tab === "journey") startJourney(); else stopJourney();
     if (b.dataset.tab === "home") loadHome();
+    if (b.dataset.tab === "director" && state.status) {
+      renderCampaigns(state.status.campaigns || []);
+      renderDirectLog(state.status.director_log || []);
+    }
   });
 });
+$("direct-go").addEventListener("click", sendDirect);
+$("direct-input").addEventListener("keydown", (e) => { if (e.key === "Enter") sendDirect(); });
+$("explainer-x").addEventListener("click", () => { $("explainer").hidden = true; });
 
 /* ---------- controls ---------- */
 async function togglePlay() {
@@ -85,6 +92,9 @@ function connectStream() {
       } else if (m.kind === "click") {
         logEvent(`<span class="e-click">click</span> ${esc(m.title)} <span style="opacity:.6">(${esc(gpretty(m.genre))})</span>`, true);
         if (state.detailId) refreshDetail();
+      } else if (m.kind === "directed") {
+        $("ticker").innerHTML = `<span class="ev">${esc(m.text)}</span>`;
+        if ($("tab-director").classList.contains("active")) refreshStatus();
       }
     } catch (e) { /* ignore */ }
   };
@@ -98,6 +108,35 @@ async function refreshStatus() {
   $("day-num").textContent = state.status.day;
   $("btn-play").textContent = state.status.running ? "⏸ Pause" : "▶ Play";
   renderClusters();
+  if ($("tab-director").classList.contains("active")) {
+    renderCampaigns(state.status.campaigns || []);
+    renderDirectLog(state.status.director_log || []);
+  }
+}
+/* ---------- director ---------- */
+async function sendDirect() {
+  const inp = $("direct-input");
+  const text = inp.value.trim();
+  if (!text) return;
+  const r = await api("/api/direct", { method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({ text }) });
+  $("direct-msg").innerHTML = esc(r.message);
+  renderCampaigns(r.campaigns || []);
+  renderDirectLog(r.log || []);
+  inp.value = "";
+}
+function renderCampaigns(cs) {
+  $("campaigns").innerHTML = cs.length ? cs.map((c) => `
+    <div class="card" style="border-top:3px solid var(--amber)">
+      <h3>🎬 ${esc(c.genres.join(" + "))}</h3>
+      <div class="meta">${c.n_targets} agents · <b>${c.days_left}</b> days left</div>
+      <div class="meta" style="opacity:.7">“${esc(c.text)}”</div>
+    </div>`).join("") : `<p class="sub">No live campaigns.</p>`;
+}
+function renderDirectLog(log) {
+  $("direct-log").innerHTML = log.slice().reverse().map((l) =>
+    `<div class="ev"><span class="dim">day ${l.day}</span>${esc(l.text)}</div>`).join("");
 }
 function renderClusters() {
   const cl = state.status.clusters;
@@ -115,8 +154,8 @@ async function refreshAgents() {
   state.agents = d.agents;
   $("agent-cards").innerHTML = d.agents.map((a) => `
     <div class="card" data-id="${a.id}">
-      <h3>${esc(a.archetype_pretty)}</h3>
-      <div class="meta">${a.id} · cluster <b style="color:${CLUSTER_COLORS[a.cluster % 6]}">${a.cluster}</b></div>
+      <h3>${a.pivot ? "★ " : ""}${esc(a.archetype_pretty)}</h3>
+      <div class="meta">${a.id} · cluster <b style="color:${CLUSTER_COLORS[a.cluster % 6]}">${a.cluster}</b>${a.pivot ? ' · <span style="color:var(--amber)">★ Bollywood pivot</span>' : ""}</div>
       <div class="meta">into <b>${esc(a.top_genre)}</b> · ${a.n_plays} plays</div>
     </div>`).join("");
   document.querySelectorAll("#agent-cards .card").forEach((c) =>
@@ -124,7 +163,7 @@ async function refreshAgents() {
   const pick = $("home-agent-pick");
   const cur = pick.value;
   pick.innerHTML = d.agents.map((a) =>
-    `<option value="${a.id}">${esc(a.archetype_pretty)} — ${a.id}</option>`).join("");
+    `<option value="${a.id}">${a.pivot ? "★ " : ""}${esc(a.archetype_pretty)} — ${a.id}</option>`).join("");
   if (cur) pick.value = cur;
   if (!state.homeAgent && d.agents.length) {
     state.homeAgent = d.agents[0].id;
@@ -268,6 +307,20 @@ async function clickTile(itemId) {
   const last = a.recent_plays[0];
   logEvent(`<span class="e-play">▶ play</span> <b>${esc(last.title)}</b> <span style="opacity:.6">(${esc(gpretty(last.genre))})</span> → taste updated`, true);
   renderHome();
+  // Paused: show the why-recommended breakdown for the clicked title.
+  if (state.status && !state.status.running) showExplainer(itemId);
+}
+async function showExplainer(itemId) {
+  try {
+    const ex = await api(`/api/explain?agent=${encodeURIComponent(state.homeAgent)}&item=${encodeURIComponent(itemId)}`);
+    if (!ex.title) return;
+    $("explainer-body").innerHTML = `
+      <h4>Why “${esc(ex.title)}” was recommended</h4>
+      <div class="dp-sub">${esc(ex.genre)} · for ${esc(state.homeAgent)} · every signal below is from this agent's own history</div>
+      ${ex.poster ? `<img src="${esc(ex.poster)}" style="height:120px;border-radius:8px;margin-bottom:8px" alt="">` : ""}
+      ${ex.signals.map((s) => `<div class="ex-signal">◆ ${esc(s)}</div>`).join("")}`;
+    $("explainer").hidden = false;
+  } catch (e) { /* ignore */ }
 }
 function logEvent(html, prepend) {
   const el = $("eventlog");
@@ -331,11 +384,14 @@ function drawJourney() {
     }
     ctx.globalAlpha = 1;
   }
-  // dots
+  // dots (clickable — positions cached for hit-testing)
+  state.journeyDots = [];
   for (let i = 0; i < n; i++) {
     const p = j.paths[i][Math.min(day, j.paths[i].length - 1)];
+    const dx = px(p[0]), dy = py(p[1]);
     ctx.fillStyle = CLUSTER_COLORS[j.labels[i] % 6];
-    ctx.beginPath(); ctx.arc(px(p[0]), py(p[1]), 3.2, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.arc(dx, dy, 3.2, 0, 7); ctx.fill();
+    state.journeyDots.push({ x: dx, y: dy, i });
   }
   // cluster labels
   ctx.font = "12px sans-serif";
@@ -359,6 +415,69 @@ function drawJourney() {
 }
 
 /* ---------- boot ---------- */
+function journeyDotAt(mx, my) {
+  if (!state.journeyDots || !state.agents) return null;
+  let best = null, bd = 14 * 14;
+  for (const d of state.journeyDots) {
+    const dd = (d.x - mx) * (d.x - mx) + (d.y - my) * (d.y - my);
+    if (dd < bd) { bd = dd; best = d; }
+  }
+  return best;
+}
+function showDotPop(a, idx, mx, my) {
+  const pop = $("dot-pop");
+  const top = Object.entries(a.taste).sort((x, y) => y[1] - x[1]).slice(0, 5);
+  const maxv = top.length ? top[0][1] : 1;
+  const cname = (state.journey && state.journey.clusters[a.cluster])
+    ? state.journey.clusters[a.cluster].name : ("cluster " + a.cluster);
+  const plays = (a.recent_plays || []).slice(0, 3).map((p) =>
+    `<div>▶ ${esc(p.title)} <span style="color:var(--teal-dim)">· day ${p.day}</span></div>`).join("");
+  pop.innerHTML = `
+    <button class="dp-x" id="dotpop-x">×</button>
+    <h4>Agent #${idx + 1} ${a.is_pivot ? '<span class="star">★ Bollywood pivot</span>' : ""}</h4>
+    <div class="dp-sub">${esc(a.archetype_pretty)} · ${esc(cname)}</div>
+    <div class="dp-row"><span>Top genre</span><b>${esc(a.top_genre)}</b></div>
+    <div class="dp-row"><span>Plays</span><b>${a.n_plays}</b></div>
+    <div class="dp-row"><span>Events</span><b>${a.n_events}</b></div>
+    <div style="margin:8px 0 4px;color:var(--dim)">Taste</div>
+    ${top.map(([g, v]) => `
+      <div class="dp-bar"><span class="g">${esc(g)}</span>
+      <span class="tr"><span class="fl" style="display:block;width:${Math.round(100 * v / maxv)}%"></span></span>
+      <span class="v">${v.toFixed(2)}</span></div>`).join("")}
+    ${plays ? `<div style="margin:8px 0 4px;color:var(--dim)">Recent plays</div><div class="dp-plays">${plays}</div>` : ""}
+    <div class="dp-actions"><button id="dotpop-full">Full agent page →</button></div>`;
+  pop.hidden = false;
+  const wrap = $("journey-wrap");
+  const pw = 300, ph = Math.min(pop.offsetHeight || 380, 420);
+  pop.style.left = Math.min(mx + 14, Math.max(8, wrap.clientWidth - pw - 8)) + "px";
+  pop.style.top = Math.max(8, Math.min(my - 20, wrap.clientHeight - ph - 8)) + "px";
+  $("dotpop-x").addEventListener("click", (ev) => { ev.stopPropagation(); pop.hidden = true; });
+  $("dotpop-full").addEventListener("click", () => { pop.hidden = true; openAgentPage(a.id); });
+}
+function initJourneyClicks() {
+  const cv = $("journey-canvas");
+  const pos = (e) => {
+    const r = cv.getBoundingClientRect();
+    return [e.clientX - r.left, e.clientY - r.top];
+  };
+  cv.addEventListener("click", async (e) => {
+    const [mx, my] = pos(e);
+    const d = journeyDotAt(mx, my);
+    const pop = $("dot-pop");
+    if (d && state.agents[d.i]) {
+      try {
+        const a = await api("/api/agent?id=" + encodeURIComponent(state.agents[d.i].id));
+        showDotPop(a, d.i, mx, my);
+      } catch (err) { pop.hidden = true; }
+    } else {
+      pop.hidden = true;
+    }
+  });
+  cv.addEventListener("mousemove", (e) => {
+    const [mx, my] = pos(e);
+    cv.style.cursor = journeyDotAt(mx, my) ? "pointer" : "default";
+  });
+}
 async function refreshAll() {
   await refreshStatus();
   await refreshAgents();
@@ -367,6 +486,7 @@ async function refreshAll() {
 }
 (async function boot() {
   connectStream();
+  initJourneyClicks();
   await refreshAll();
   setInterval(() => {
     if (!$("tab-journey").classList.contains("active")) refreshStatus();
