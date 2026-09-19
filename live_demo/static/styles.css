@@ -39,7 +39,8 @@ header {
 }
 .controls button:hover { border-color: var(--teal); }
 .controls button.primary { background: var(--teal); color: #06251a; border-color: var(--teal); font-weight: 700; }
-.day-counter { font-size: 14px; color: var(--dim); min-width: 90px; text-align: right; }
+.day-counter { font-size: 14px; color: var(--dim); min-width: 90px; text-align: right; cursor: pointer; user-select: none; }
+.day-counter:hover b { color: var(--teal); }
 .day-counter b { color: var(--text); font-size: 20px; }
 #ticker {
   display: flex; gap: 18px; overflow: hidden; white-space: nowrap;
