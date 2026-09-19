@@ -3,8 +3,19 @@ const $ = (id) => document.getElementById(id);
 const CLUSTER_COLORS = ["#6edcaa", "#f2b544", "#7bb8f2", "#c792ea", "#e56b6b", "#8bd450"];
 const state = {
   status: null, agents: [], homeAgent: null, homeData: null,
-  selectedAgent: null, journey: null, journeyTimer: null, showTrails: true,
+  detailId: null, detailAgent: null, journey: null, journeyTimer: null, showTrails: true,
 };
+
+function genreColor(g) {
+  let h = 0;
+  for (const c of g) h = (h * 31 + c.charCodeAt(0)) % 360;
+  return `hsl(${h}, 62%, 52%)`;
+}
+const GPRETTY = {"sci-fi": "Sci-Fi", "k-drama": "K-Drama", "true-crime": "True Crime",
+  "reality-tv": "Reality TV", "romcom": "Rom-Com"};
+function gpretty(g) {
+  return GPRETTY[g] || String(g).replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
 
 async function api(path, opts) {
   const r = await fetch(path, opts);
@@ -39,8 +50,8 @@ $("btn-reset").addEventListener("click", async () => {
   if (!confirm("Reset the simulation to day 0?")) return;
   await api("/api/control", { method: "POST", headers: {"Content-Type": "application/json"},
     body: JSON.stringify({ action: "reset" }) });
-  state.homeData = null; state.selectedAgent = null;
-  $("agent-detail").style.display = "none";
+  state.homeData = null; state.detailId = null; state.detailAgent = null;
+  closeAgentPage();
   refreshAll();
 });
 $("sel-speed").addEventListener("change", async (e) => {
@@ -56,15 +67,17 @@ function connectStream() {
       const m = JSON.parse(ev.data);
       if (m.kind === "tick") {
         refreshStatus();
+        if (state.detailId) refreshDetail();
         if (m.feed && m.feed.length) {
           const html = m.feed.map((e) =>
-            `<span class="ev"><b>${e.archetype.replace(/_/g, " ")}</b> ${e.type === "search" ? "searched" : "played"} <span class="t">${esc(e.title)}</span> <span style="opacity:.6">(${e.genre})</span></span>`
+            `<span class="ev"><b>${e.archetype.replace(/_/g, " ")}</b> ${e.type === "search" ? "searched" : "played"} <span class="t">${esc(e.title)}</span> <span style="opacity:.6">(${esc(gpretty(e.genre))})</span></span>`
           ).join("");
           $("ticker").innerHTML = html;
         }
         if ($("tab-journey").classList.contains("active")) fetchJourney();
       } else if (m.kind === "click") {
-        logEvent(`<span class="e-click">click</span> ${esc(m.title)} <span style="opacity:.6">(${m.genre})</span>`, true);
+        logEvent(`<span class="e-click">click</span> ${esc(m.title)} <span style="opacity:.6">(${esc(gpretty(m.genre))})</span>`, true);
+        if (state.detailId) refreshDetail();
       }
     } catch (e) { /* ignore */ }
   };
@@ -100,7 +113,7 @@ async function refreshAgents() {
       <div class="meta">into <b>${esc(a.top_genre)}</b> · ${a.n_plays} plays</div>
     </div>`).join("");
   document.querySelectorAll("#agent-cards .card").forEach((c) =>
-    c.addEventListener("click", () => selectAgent(c.dataset.id)));
+    c.addEventListener("click", () => openAgentPage(c.dataset.id)));
   const pick = $("home-agent-pick");
   const cur = pick.value;
   pick.innerHTML = d.agents.map((a) =>
@@ -112,36 +125,102 @@ async function refreshAgents() {
     loadHome();
   }
 }
-async function selectAgent(id) {
-  document.querySelectorAll("#agent-cards .card").forEach((c) =>
-    c.classList.toggle("selected", c.dataset.id === id));
-  const a = await api("/api/agent?id=" + encodeURIComponent(id));
-  state.selectedAgent = a;
-  const d = $("agent-detail");
-  d.style.display = "block";
-  d.innerHTML = `
-    <h3>${esc(a.archetype_pretty)} · <span style="color:var(--dim)">${a.id}</span></h3>
-    <div class="kv">
-      <div><b>Emergent cluster</b><span style="color:${CLUSTER_COLORS[a.cluster % 6]};font-weight:700">Cluster ${a.cluster}</span></div>
-      <div><b>Top genre now</b>${esc(a.top_genre)}</div>
-      <div><b>Sessions / week</b>${a.sessions_per_week}</div>
-      <div><b>Search propensity</b>${a.search_propensity}</div>
-      <div><b>Clickiness</b>${a.clickiness}</div>
-      <div><b>Completion</b>${a.completion_propensity}</div>
-      <div><b>Events recorded</b>${a.n_events}</div>
-      <div><b>Apps</b>${a.subscribed_apps.slice(0, 4).join(", ")}</div>
-    </div>
-    <h3 style="font-size:14px;margin:12px 0 6px">Live taste vector</h3>
-    ${tasteBars(a.taste)}
-    <h3 style="font-size:14px;margin:12px 0 6px">Recent plays</h3>
-    <div class="play-list">${a.recent_plays.map((p) =>
-      `<b>${esc(p.title)}</b> (${esc(p.genre)}, day ${p.day})`).join("<br>") || "—"}</div>`;
+/* ---------- agent data-model page ---------- */
+async function openAgentPage(id) {
+  state.detailId = id;
+  await refreshDetail();
+  $("agent-page").style.display = "block";
+}
+function closeAgentPage() {
+  $("agent-page").style.display = "none";
+  state.detailId = null;
+  state.detailAgent = null;
+}
+async function refreshDetail() {
+  if (!state.detailId) return;
+  try {
+    const a = await api("/api/agent?id=" + encodeURIComponent(state.detailId));
+    state.detailAgent = a;
+    const pg = $("agent-page");
+    const st = pg.scrollTop;
+    renderAgentPage(a);
+    pg.scrollTop = st;
+  } catch (e) { /* sim may be resetting */ }
+}
+function renderAgentPage(a) {
+  const p = a.profile, ec = a.event_counts, lu = a.last_taste_update;
+  const delta = lu ? (lu.after - lu.before) * 100 : 0;
+  const luHtml = lu ? `<div class="update-box">
+      <b>Day ${lu.day}</b> · ${lu.kind === "search" ? "searched for" : "watched"}
+      <b>${esc(lu.title)}</b> →
+      <b style="color:${genreColor(lu.genre)}">${esc(gpretty(lu.genre))}</b>
+      moved <b>${(lu.before * 100).toFixed(1)}% → ${(lu.after * 100).toFixed(1)}%</b>
+      <span class="delta">(${delta >= 0 ? "+" : ""}${delta.toFixed(2)} pts)</span>
+    </div>`
+    : `<div class="hint">No taste updates yet — press Play and let this agent watch something.</div>`;
+  $("agent-page-body").innerHTML = `
+  <div class="ap-head">
+    <button class="back-btn" id="ap-back">← All agents</button>
+    <h2>${esc(a.archetype_pretty)} <span class="dim">· ${a.id}</span></h2>
+    <span class="chip" style="border-color:${CLUSTER_COLORS[a.cluster % 6]};color:${CLUSTER_COLORS[a.cluster % 6]}">Cluster ${a.cluster}</span>
+    <span class="chip">leaning ${esc(gpretty(a.top_genre))}</span>
+  </div>
+  <p class="sub">This is the agent's <b>live data model</b> — everything the platform has
+  collected or inferred about this viewer, updating in real time while the simulation runs.</p>
+  <div class="ap-grid">
+    <div class="card"><h3>1 · Identity — captured at signup</h3>
+      <div class="kv">
+        <div><b>Viewer id</b>${a.id}</div>
+        <div><b>Archetype</b>${esc(a.archetype_pretty)}</div>
+        <div><b>Age band</b>${p.age_band}</div>
+        <div><b>Region</b>${p.region}</div>
+        <div><b>Primary device</b>${p.primary_device}</div>
+        <div><b>Household size</b>${p.household_size}</div>
+        <div><b>Subscribed apps</b>${a.subscribed_apps.slice(0, 4).join(", ")}</div>
+      </div></div>
+    <div class="card"><h3>2 · Behavioral DNA — inferred from usage</h3>
+      <div class="kv">
+        <div><b>Sessions / week</b>${a.sessions_per_week}<span class="note">how often they show up</span></div>
+        <div><b>Search propensity</b>${a.search_propensity}<span class="note">browse vs. search</span></div>
+        <div><b>Clickiness</b>${a.clickiness}<span class="note">tile click-through rate</span></div>
+        <div><b>Completion</b>${a.completion_propensity}<span class="note">finishes what they start</span></div>
+        <div><b>Titles / session</b>${a.mean_units}<span class="note">binge depth</span></div>
+      </div></div>
+  </div>
+  <h3 class="ap-sec">3 · Taste vector — learned, all 30 genres</h3>
+  <p class="sub">Every play and search nudges these weights. They always sum to 100%.</p>
+  <div class="card">${tasteBars(a.taste)}</div>
+  <h3 class="ap-sec">4 · How data is collected</h3>
+  <div class="pipe">
+    <div class="step"><div class="n">1</div><b>Observe.</b><p>Every impression, click, play and
+      search is logged with day, title, genre and query. <b>${a.n_events} events</b> so far for this viewer.</p></div>
+    <div class="step"><div class="n">2</div><b>Learn.</b><p>Each event nudges the 30-genre taste
+      vector: <span class="mono">new = 0.88 × old + 0.12 × title</span>. Latest update:</p>${luHtml}</div>
+    <div class="step"><div class="n">3</div><b>Cluster.</b><p>Every simulated day, k-means re-fits
+      6 clusters over all ${state.status ? state.status.n_agents : ""} live taste vectors.
+      This viewer sits in <b>cluster ${a.cluster}</b>.</p></div>
+    <div class="step"><div class="n">4</div><b>Rank.</b><p><b>${a.home_screen.rails.length} collections</b>
+      are re-scored against the fresh vector — the Home Screen tab is this step, executing live.</p></div>
+  </div>
+  <table class="tax">
+    <tr><th>Event</th><th>How it's captured</th><th>Fields stored</th><th>Count</th></tr>
+    <tr><td><span class="e-imp">impression</span></td><td>tile rendered on screen</td><td class="mono">day · title · genre</td><td>${ec.impression}</td></tr>
+    <tr><td><span class="e-click">click</span></td><td>tile tapped</td><td class="mono">day · title · genre</td><td>${ec.click}</td></tr>
+    <tr><td><span class="e-play">play</span></td><td>watch started</td><td class="mono">day · title · genre</td><td>${ec.play}</td></tr>
+    <tr><td><span class="e-search">search</span></td><td>query submitted</td><td class="mono">day · query · genre · title picked</td><td>${ec.search}</td></tr>
+  </table>
+  <h3 class="ap-sec">Live event stream</h3>
+  <div class="ev-stream">${a.recent_events.map((e) => `
+    <div>[day ${e.day}] <span class="e-${e.type}">${e.type}</span> <b>${esc(e.title)}</b>
+    <span class="dim">(${esc(gpretty(e.genre))})</span>${e.query ? ` <span class="dim">query: &ldquo;${esc(e.query)}&rdquo;</span>` : ""}</div>`).join("")
+    || '<span class="hint">nothing recorded yet</span>'}</div>`;
+  $("ap-back").addEventListener("click", closeAgentPage);
 }
 function tasteBars(taste) {
   const entries = Object.entries(taste).sort((a, b) => b[1] - a[1]);
   return entries.map(([g, w]) => `
-    <div class="bar-row"><div class="lbl">${esc(g)}</div>
-    <div class="bar"><div class="fill" style="width:${Math.round(w * 100)}%"></div></div>
+    <div class="bar-row"><div class="lbl">${esc(gpretty(g))}</div>
+    <div class="bar"><div class="fill" style="width:${Math.round(w * 100)}%;background:${genreColor(g)}"></div></div>
     <div class="val">${Math.round(w * 100)}%</div></div>`).join("");
 }
 
@@ -164,23 +243,15 @@ function tileHTML(t) {
     ${prov ? `<span class="prov">${esc(prov)}</span>` : ""}</div></div>`;
 }
 function renderHome() {
-  const a = state.homeData, hs = a.home_screen;
-  const rails = [
-    ["Personalized for you", `<span class="why">ranked live against this agent's taste</span>`, hs.personalized],
-    [`Because of your interest in ${hs.interest.genre}`, "", hs.interest.items],
-  ];
-  if (hs.because_watched.title)
-    rails.push([`Because you watched ${hs.because_watched.title}`, "", hs.because_watched.items]);
-  rails.push(["Trending now", `<span class="why">across the live simulation</span>`, hs.trending]);
-  rails.push(["Continue watching", "", hs.continue]);
-  $("rails").innerHTML = rails.map(([t, why, items]) => `
-    <div class="rail"><h3>${esc(t)} ${why}</h3>
-    <div class="tiles">${items.map(tileHTML).join("") || '<span class="hint">empty</span>'}</div></div>`).join("");
+  const a = state.homeData;
+  $("rails").innerHTML = a.home_screen.rails.map((r) => `
+    <div class="rail"><h3>${esc(r.title)}${r.why ? ` <span class="why">${esc(r.why)}</span>` : ""}</h3>
+    <div class="tiles">${r.items.map(tileHTML).join("")}</div></div>`).join("");
   document.querySelectorAll("#rails .tile").forEach((el) =>
     el.addEventListener("click", () => clickTile(el.dataset.id)));
   $("taste-bars").innerHTML = tasteBars(a.taste);
   $("home-hint").innerHTML =
-    `Showing <b>${esc(a.archetype_pretty)}</b> (${a.id}) — day ${state.status.day}, cluster ${a.cluster}. Click any tile.`;
+    `Showing <b>${esc(a.archetype_pretty)}</b> (${a.id}) — day ${state.status.day}, cluster ${a.cluster}, ${a.home_screen.rails.length} collections. Click any tile.`;
 }
 async function clickTile(itemId) {
   const a = await api("/api/click", { method: "POST",
@@ -188,7 +259,7 @@ async function clickTile(itemId) {
     body: JSON.stringify({ agent_id: state.homeAgent, item_id: itemId }) });
   state.homeData = a;
   const last = a.recent_plays[0];
-  logEvent(`<span class="e-play">▶ play</span> <b>${esc(last.title)}</b> <span style="opacity:.6">(${last.genre})</span> → taste updated`, true);
+  logEvent(`<span class="e-play">▶ play</span> <b>${esc(last.title)}</b> <span style="opacity:.6">(${esc(gpretty(last.genre))})</span> → taste updated`, true);
   renderHome();
 }
 function logEvent(html, prepend) {
@@ -290,5 +361,8 @@ async function refreshAll() {
 (async function boot() {
   connectStream();
   await refreshAll();
-  setInterval(() => { if (!$("tab-journey").classList.contains("active")) refreshStatus(); }, 3000);
+  setInterval(() => {
+    if (!$("tab-journey").classList.contains("active")) refreshStatus();
+    if (state.detailId) refreshDetail();
+  }, 3000);
 })();
