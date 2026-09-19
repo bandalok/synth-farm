@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Synth Farm — LIVE</title>
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<header>
+  <div class="logo">SYNTH<span>FARM</span></div>
+  <div class="live-badge"><span class="dot"></span>LIVE SIMULATION</div>
+  <div class="controls">
+    <button id="btn-play" class="primary">▶ Play</button>
+    <button id="btn-step">Step 1 day</button>
+    <button id="btn-reset">Reset</button>
+    <select id="sel-speed" title="sim speed">
+      <option value="2.5">Slow</option>
+      <option value="1.5" selected>Normal</option>
+      <option value="0.6">Fast</option>
+      <option value="0.25">Ludicrous</option>
+    </select>
+    <div class="day-counter">DAY <b id="day-num">0</b></div>
+  </div>
+</header>
+<div id="ticker"><span class="ev">Simulation idle — press <b>Play</b> to start the agents.</span></div>
+<nav class="tabs">
+  <button data-tab="clusters" class="active">Clusters</button>
+  <button data-tab="agents">Agents</button>
+  <button data-tab="home">Home Screen</button>
+  <button data-tab="journey">Journey · 30 days</button>
+</nav>
+<main>
+  <section id="tab-clusters" class="tab active">
+    <h2>Viewer clusters</h2>
+    <p class="sub">Six taste clusters emerging live from the running simulation. Sizes shift as agents watch, search, and drift. These are recomputed from the agents' actual taste vectors every simulated day.</p>
+    <div class="cards" id="cluster-cards"></div>
+  </section>
+
+  <section id="tab-agents" class="tab">
+    <h2>Agents</h2>
+    <p class="sub">Every agent is a synthetic viewer with a live data model: taste vector, behavior parameters, subscriptions, and a growing event history. Select one to inspect it — then open the Home Screen tab to see its personalized rails.</p>
+    <div class="cards" id="agent-cards"></div>
+    <div class="detail" id="agent-detail" style="display:none"></div>
+  </section>
+
+  <section id="tab-home" class="tab">
+    <h2>Personalized home screen</h2>
+    <p class="sub">Rails ranked live against the selected agent's <i>current</i> taste vector. Click any tile and the running simulation records impression → click → play, updates the agent's model, and re-ranks. This is the recommendation loop, executing for real.</p>
+    <select class="agent-pick" id="home-agent-pick"></select>
+    <div class="search-row">
+      <input id="search-box" type="text" placeholder="Search 117 real titles… (e.g. horror, Reacher, documentary)" autocomplete="off">
+    </div>
+    <div id="search-results" style="display:none" class="rail">
+      <h3>Search results</h3>
+      <div class="tiles" id="search-tiles"></div>
+    </div>
+    <div class="hint" id="home-hint">Pick an agent above, then click any tile — <b>watch their taste bars move</b> below.</div>
+    <div id="rails"></div>
+    <h3 style="margin-top:8px">Agent's live taste vector</h3>
+    <div id="taste-bars" style="max-width:640px"></div>
+    <h3 style="margin-top:14px">Event log</h3>
+    <div id="eventlog"></div>
+  </section>
+
+  <section id="tab-journey" class="tab">
+    <h2>The journey: from cold start to clusters</h2>
+    <p class="sub">Day 0: 240 new viewers, near-identical taste — one crowd. Every simulated day they watch TV and search; their taste follows what they consume, and crowds pull toward their own. Dots are agents, colored by emergent cluster. This is happening live — press Play and watch them walk apart.</p>
+    <div id="journey-wrap"><canvas id="journey-canvas"></canvas></div>
+    <div class="journey-legend" id="journey-legend"></div>
+  </section>
+</main>
+<script src="/app.js"></script>
+</body>
+</html>
