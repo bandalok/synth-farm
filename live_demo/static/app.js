@@ -197,7 +197,7 @@ function renderAgentPage(a) {
     <div class="step"><div class="n">2</div><b>Learn.</b><p>Each event nudges the Gracenote-genre taste
       vector: <span class="mono">new = 0.88 × old + 0.12 × title</span>. Latest update:</p>${luHtml}</div>
     <div class="step"><div class="n">3</div><b>Cluster.</b><p>Every simulated day, k-means re-fits
-      6 clusters over all ${state.status ? state.status.n_agents : ""} live taste vectors.
+      ${state.status && state.status.n_clusters ? state.status.n_clusters : ""} clusters over all ${state.status ? state.status.n_agents : ""} live taste vectors.
       This viewer sits in <b>cluster ${a.cluster}</b>.</p></div>
     <div class="step"><div class="n">4</div><b>Rank.</b><p><b>${a.home_screen.rails.length} collections</b>
       are re-scored against the fresh vector — the Home Screen tab is this step, executing live.</p></div>
