@@ -28,7 +28,7 @@
   <button data-tab="clusters" class="active">Clusters</button>
   <button data-tab="agents">Agents</button>
   <button data-tab="home">Home Screen</button>
-  <button data-tab="journey">Journey · 30 days</button>
+  <button data-tab="journey">Journey</button>
 </nav>
 <main>
   <section id="tab-clusters" class="tab active">
@@ -39,14 +39,13 @@
 
   <section id="tab-agents" class="tab">
     <h2>Agents</h2>
-    <p class="sub">Every agent is a synthetic viewer with a live data model: taste vector, behavior parameters, subscriptions, and a growing event history. Select one to inspect it — then open the Home Screen tab to see its personalized rails.</p>
+    <p class="sub">Every agent is a synthetic viewer with a live data model: taste vector, behavior parameters, subscriptions, and a growing event history. <b>Click any agent to open its data-model page</b> — what the platform knows about the viewer, and exactly how it learned it.</p>
     <div class="cards" id="agent-cards"></div>
-    <div class="detail" id="agent-detail" style="display:none"></div>
   </section>
 
   <section id="tab-home" class="tab">
     <h2>Personalized home screen</h2>
-    <p class="sub">Rails ranked live against the selected agent's <i>current</i> taste vector. Click any tile and the running simulation records impression → click → play, updates the agent's model, and re-ranks. This is the recommendation loop, executing for real.</p>
+    <p class="sub">13 collections of 20 titles, ranked live against the selected agent's <i>current</i> 30-genre taste vector. Taste rails up top, then trending, new and popular, a deliberate detour outside their usual genres (variety beats fatigue), and the lookalike picks from their cluster. Click any tile and the running simulation records impression → click → play, updates the agent's model, and re-ranks. This is the recommendation loop, executing for real.</p>
     <select class="agent-pick" id="home-agent-pick"></select>
     <div class="search-row">
       <input id="search-box" type="text" placeholder="Search 117 real titles… (e.g. horror, Reacher, documentary)" autocomplete="off">
@@ -70,6 +69,7 @@
     <div class="journey-legend" id="journey-legend"></div>
   </section>
 </main>
+<div id="agent-page" style="display:none"><div id="agent-page-body"></div></div>
 <script src="/app.js"></script>
 </body>
 </html>
