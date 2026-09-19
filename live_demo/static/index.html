@@ -29,11 +29,12 @@
   <button data-tab="agents">Agents</button>
   <button data-tab="home">Home Screen</button>
   <button data-tab="journey">Journey</button>
+  <button data-tab="director">🎬 Director</button>
 </nav>
 <main>
   <section id="tab-clusters" class="tab active">
     <h2>Viewer clusters</h2>
-    <p class="sub">Six taste clusters emerging live from the running simulation. Sizes shift as agents watch, search, and drift. These are recomputed from the agents' actual taste vectors every simulated day.</p>
+    <p class="sub">20 taste clusters emerging live from the running simulation. Sizes shift as agents watch, search, and drift. These are recomputed from the agents' actual taste vectors every simulated day.</p>
     <div class="cards" id="cluster-cards"></div>
   </section>
 
@@ -45,10 +46,10 @@
 
   <section id="tab-home" class="tab">
     <h2>Personalized home screen</h2>
-    <p class="sub">13 collections of 20 titles, ranked live against the selected agent's <i>current</i> Gracenote-genre taste vector. Taste rails up top, then trending, new and popular, a deliberate detour outside their usual genres (variety beats fatigue), and the lookalike picks from their cluster. Click any tile and the running simulation records impression → click → play, updates the agent's model, and re-ranks. This is the recommendation loop, executing for real.</p>
+    <p class="sub">13 collections of 20 titles, ranked live against the selected agent's <i>current</i> taste vector — 29 Gracenote genres plus a dedicated Bollywood axis. Taste rails up top, then trending, new and popular, a deliberate detour outside their usual genres (variety beats fatigue), and the lookalike picks from their cluster. Click any tile and the running simulation records impression → click → play, updates the agent's model, and re-ranks. This is the recommendation loop, executing for real.</p>
     <select class="agent-pick" id="home-agent-pick"></select>
     <div class="search-row">
-      <input id="search-box" type="text" placeholder="Search 117 real titles… (e.g. horror, Reacher, documentary)" autocomplete="off">
+      <input id="search-box" type="text" placeholder="Search the catalog… (e.g. horror, Reacher, documentary)" autocomplete="off">
     </div>
     <div id="search-results" style="display:none" class="rail">
       <h3>Search results</h3>
@@ -64,10 +65,31 @@
 
   <section id="tab-journey" class="tab">
     <h2>The journey: from cold start to clusters</h2>
-    <p class="sub">Day 0: 240 new viewers, near-identical taste — one crowd. Every simulated day they watch TV and search; their taste follows what they consume, and crowds pull toward their own. Dots are agents, colored by emergent cluster. This is happening live — press Play and watch them walk apart.</p>
-    <div id="journey-wrap"><canvas id="journey-canvas"></canvas></div>
+    <p class="sub">Day 0: 240 new viewers, near-identical taste — one crowd. Every simulated day they watch TV and search; their taste follows what they consume, and crowds pull toward their own. Dots are agents, colored by emergent cluster — click any dot to open that agent's data-model page. This is happening live — press Play and watch them walk apart.</p>
+    <div id="journey-wrap"><canvas id="journey-canvas"></canvas>
+      <div id="dot-pop" class="dot-pop" hidden></div>
+    </div>
     <div class="journey-legend" id="journey-legend"></div>
   </section>
+
+  <section id="tab-director" class="tab">
+    <h2>Director — the manager agent</h2>
+    <p class="sub">One agent above the rest. Give it a plain-English directive — <i>“NFL is starting, pivot some users to football for 7 days”</i> — and it spins up a time-limited campaign that steers the targeted agents' watching toward those genres. Campaigns decay automatically; <i>“stop campaigns”</i> kills them all. Targets: <i>some / half / all / 30% / cluster 3</i>.</p>
+    <div class="search-row">
+      <input id="direct-input" type="text" placeholder="Pivot some users to football for 7 days…" autocomplete="off">
+      <button id="direct-go" class="go-btn">Direct</button>
+    </div>
+    <div class="hint" id="direct-msg">No directive yet — try one above.</div>
+    <h3 style="margin-top:10px">Live campaigns</h3>
+    <div class="cards" id="campaigns"></div>
+    <h3 style="margin-top:14px">Director log</h3>
+    <div id="direct-log" class="eventlog"></div>
+  </section>
+
+  <div id="explainer" class="explainer" hidden>
+    <button class="dp-x" id="explainer-x">×</button>
+    <div id="explainer-body"></div>
+  </div>
 </main>
 <div id="agent-page" style="display:none"><div id="agent-page-body"></div></div>
 <script src="/app.js"></script>
