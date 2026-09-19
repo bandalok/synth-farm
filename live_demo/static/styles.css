@@ -244,3 +244,6 @@ select.agent-pick {
 .master-toast .mt-text { font-size: 13px; margin-bottom: 4px; }
 .master-toast canvas { width: 360px; height: 130px; display: block; }
 @keyframes toast-in { from { transform: translate(-50%, -18px); opacity: 0; } }
+.master-target-note { font-size: 13px; padding: 8px 12px; margin-bottom: 8px; background: rgba(242,181,68,.08); border: 1px solid rgba(242,181,68,.35); border-radius: 8px; }
+.card.targeted { border-color: rgba(74,222,128,.7); box-shadow: 0 0 16px rgba(74,222,128,.35), inset 0 0 10px rgba(74,222,128,.07); }
+.card .tgt { color: #4ade80; font-weight: 600; }
