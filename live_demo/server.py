@@ -17,6 +17,7 @@ import hashlib
 import json
 import os
 import queue
+import random
 import re
 import sys
 import threading
@@ -1207,16 +1208,23 @@ class LiveSim:
             scored.append((boost, s, it))
         scored.sort(key=lambda t: (-t[0], -t[1], t[2].item_id))
         # Sponsored search: exactly one slot. The highest-popularity match for
-        # the query is pinned first with a "Sponsored" tag, ahead of the
-        # personalized organic ranking. Deterministic per query.
+        # the query is tagged "Sponsored" and inserted at a random position
+        # among slots 2-4 (never first), ahead of the personalized organic
+        # ranking. The sponsored title is deterministic per query; only the
+        # slot is randomized.
         out = []
         if scored:
             spon = max(scored, key=lambda t: t[2].popularity)
             d = self._item_json(spon[2], spon[1])
             d["sponsored"] = True
-            out.append(d)
-            scored = [t for t in scored if t[2] is not spon[2]]
-        out.extend(self._item_json(it, s) for _, s, it in scored[:n - len(out)])
+            rest = [t for t in scored if t[2] is not spon[2]]
+            organics = [self._item_json(it, s) for _, s, it in rest[:n - 1]]
+            if organics:
+                pos = random.randint(1, min(3, len(organics)))
+                organics.insert(pos, d)
+                out = organics[:n]
+            else:
+                out = [d]
         return out
 
     # -- main loop --------------------------------------------------------------
