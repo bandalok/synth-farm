@@ -236,7 +236,7 @@ def test_campaign_effect_fades_steadily():
 
 def test_mlb_shelf_and_providers_on_every_title():
     s = LiveSim(n_agents=24, seed=7, tick_seconds=0.05)
-    assert len(s.catalog.items) == 516  # 500 TMDb + 16 synthetic MLB
+    assert len(s.catalog.items) == 500  # exactly 500: 484 TMDb + 16 synthetic MLB
     mlb = [it for it in s.catalog.items if it.item_id.startswith("tmdb-movie--")]
     assert len(mlb) == 16
     assert all("Sports" in it.genre_tags for it in mlb)
@@ -340,3 +340,103 @@ def test_scheduled_campaign_activation_pauses_sim():
     assert s._camp_active(s.campaigns[0])
     assert s.running is False
     assert "⏸" in s.master_log[-1]["text"]
+
+# ---------- pause-mode day stepping (◀ ▶) ----------
+
+def _fresh_paused(n=24):
+    s = LiveSim(n_agents=n, seed=7, tick_seconds=0.05)
+    assert s.running is False and s.day == 0
+    return s
+
+def test_step_back_at_day_zero_is_noop():
+    s = _fresh_paused()
+    r = s.step_day(-1)
+    assert r["ok"] is False and s.day == 0
+
+def test_step_forward_advances_one_day_while_paused():
+    s = _fresh_paused()
+    r = s.step_day(1)
+    assert r["ok"] is True and s.day == 1
+
+def test_step_back_and_forward_restore_exact_state():
+    s = _fresh_paused()
+    for _ in range(3):
+        with s.lock:
+            s.tick()
+    tastes3 = s.tastes.copy()
+    watched3 = {k: set(v) for k, v in s.watched.items()}
+    assert s.step_day(-1)["ok"] and s.day == 2
+    assert s.step_day(-1)["ok"] and s.day == 1
+    assert s.step_day(1)["ok"] and s.day == 2
+    assert s.step_day(1)["ok"] and s.day == 3
+    assert (s.tastes == tastes3).all()
+    assert s.watched == watched3
+
+def test_step_while_running_is_refused():
+    s = _fresh_paused()
+    s.running = True
+    assert s.step_day(-1)["ok"] is False
+    assert s.step_day(1)["ok"] is False
+    assert s.day == 0
+
+def test_campaign_survives_step_away_and_back():
+    s = _fresh_paused()
+    for _ in range(3):
+        with s.lock:
+            s.tick()
+    s.direct("pivot all users to baseball for 7 days")
+    assert any(s._camp_active(c) for c in s.campaigns)
+    assert s.step_day(-1)["ok"] and s.day == 2
+    assert not any(s._camp_active(c) for c in s.campaigns)
+    assert s.step_day(1)["ok"] and s.day == 3
+    assert any(s._camp_active(c) for c in s.campaigns)
+    assert s.campaigns[0]["days_left"] == 7
+
+def test_new_directive_after_step_back_truncates_future():
+    s = _fresh_paused()
+    for _ in range(3):
+        with s.lock:
+            s.tick()
+    s.direct("pivot all users to baseball for 7 days")
+    s.step_day(-1)
+    s.step_day(-1)  # back at day 1
+    s.direct("pivot all users to horror for 7 days")
+    s.step_day(1)  # forward into a brand-new day 2
+    genres = [g for c in s.campaigns for g in c["genres"]]
+    assert "Horror" in genres and "Sports" not in genres
+
+def test_campaign_days_left_decrements_on_stepped_days():
+    s = _fresh_paused()
+    s.direct("pivot all users to baseball for 7 days")
+    assert s.campaigns[0]["days_left"] == 7
+    s.step_day(1)
+    assert s.campaigns[0]["days_left"] == 6
+    s.step_day(-1)
+    assert s.campaigns[0]["days_left"] == 7
+
+# ---------- exact-500 catalog, every tile has poster art ----------
+
+def test_catalog_is_exactly_500_titles():
+    s = LiveSim(n_agents=24, seed=7, tick_seconds=0.05)
+    assert len(s.catalog.items) == 500
+
+def test_every_catalog_title_has_poster_art():
+    s = LiveSim(n_agents=24, seed=7, tick_seconds=0.05)
+    missing = [it.title for it in s.catalog.items if not it.poster_path]
+    assert missing == [], f"{len(missing)} titles without posters"
+
+def test_mlb_shelf_kept_16_with_real_posters():
+    s = LiveSim(n_agents=24, seed=7, tick_seconds=0.05)
+    mlb = [it for it in s.catalog.items if it.item_id.startswith("tmdb-movie--")]
+    assert len(mlb) == 16
+    assert all(it.poster_path.startswith("/") for it in mlb)
+
+def test_home_screen_tiles_all_carry_poster_urls():
+    s = LiveSim(n_agents=24, seed=7, tick_seconds=0.05)
+    s.direct("pivot all users to baseball for 7 days")
+    p = s.personas[6]
+    payload = s.agent_payload(p)
+    tiles = [t for r in payload["home_screen"]["rails"] for t in r["items"]]
+    assert len(tiles) > 0
+    missing = [t["title"] for t in tiles if not t["poster"]]
+    assert missing == [], f"{len(missing)} tiles without poster urls"
