@@ -596,11 +596,14 @@ class LiveSim:
                 camp["days_left"] -= 1
                 if not camp.get("announced"):
                     # a scheduled campaign just went live — fire its toast
+                    # and freeze the sim so the visuals can be inspected
                     camp["announced"] = True
+                    self.running = False
                     who = f"{len(camp['targets'])} agents"
                     msg = (f"🎭 Master Agent: pivoting {who} toward "
                            f"{', '.join(camp['genres'])} for "
-                           f"{camp['days_total']} days.")
+                           f"{camp['days_total']} days. "
+                           f"⏸ Sim paused so you can inspect — hit ▶ Play to watch it fade.")
                     self.master_log.append({"day": self.day, "text": msg})
                     self.master_log = self.master_log[-30:]
                     ev = {"kind": "directed", "day": self.day, "text": msg,
@@ -1171,8 +1174,13 @@ class LiveSim:
                    else f"{len(targets)} agents")
             if parsed["start_day"] <= self.day:
                 msg = (f"🎭 Master Agent: pivoting {who} toward "
-                       f"{', '.join(parsed['genres'])} for {parsed['days']} days.")
+                       f"{', '.join(parsed['genres'])} for {parsed['days']} days. "
+                       f"⏸ Sim paused so you can inspect — hit ▶ Play to watch it fade.")
                 camp["announced"] = True
+                # Freeze the sim the moment a campaign goes live: at the
+                # default tick a 7-day campaign evaporates in ~11 real seconds,
+                # which makes every visual vanish before it can be inspected.
+                self.running = False
             else:
                 end = parsed["start_day"] + parsed["days"] - 1
                 msg = (f"🎭 Master Agent: scheduled {', '.join(parsed['genres'])} "
