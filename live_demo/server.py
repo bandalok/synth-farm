@@ -147,23 +147,25 @@ def _derived_tags(entry: dict, gids: list) -> list:
 # Synthetic MLB shelf appended to the catalog at load time: real baseball
 # films and documentaries so the baseball agents and MLB campaigns have
 # something to watch. (title, year, genre tags, popularity, vote_average)
+# Sports leads every tuple: primary_genre is tags[0], so the tiles read
+# as Sports (⚾) and watches reinforce the Sports taste dimension.
 _MLB_INSERTS: tuple = (
-    ("Field of Dreams", 1989, ("Drama", "Sports", "Fantasy"), 8.2, 7.5),
-    ("Moneyball", 2011, ("Drama", "Sports"), 9.1, 7.6),
-    ("42", 2013, ("Drama", "Sports", "History"), 7.4, 7.5),
-    ("The Sandlot", 1993, ("Family", "Comedy", "Sports"), 8.0, 7.5),
-    ("Bull Durham", 1988, ("Comedy", "Romance", "Sports"), 7.1, 7.0),
-    ("A League of Their Own", 1992, ("Comedy", "Drama", "Sports"), 7.8, 7.3),
-    ("Ken Burns: Baseball", 1994, ("Documentary", "History", "Sports"), 6.5, 8.6),
-    ("The Battered Bastards of Baseball", 2014, ("Documentary", "Sports"), 6.2, 7.5),
-    ("Fastball", 2016, ("Documentary", "Sports"), 5.4, 7.0),
-    ("Screwball", 2018, ("Documentary", "Comedy", "Crime", "Sports"), 5.1, 6.8),
-    ("Knuckleball!", 2012, ("Documentary", "Sports"), 4.8, 7.1),
-    ("No No: A Dockumentary", 2014, ("Documentary", "Sports"), 4.9, 7.2),
-    ("Trouble with the Curve", 2012, ("Drama", "Sports"), 6.8, 6.8),
-    ("For Love of the Game", 1999, ("Drama", "Romance", "Sports"), 6.4, 6.6),
-    ("61*", 2001, ("Drama", "Sports"), 5.9, 7.5),
-    ("The Natural", 1984, ("Drama", "Sports"), 7.0, 7.2),
+    ("Field of Dreams", 1989, ("Sports", "Drama", "Fantasy"), 8.2, 7.5),
+    ("Moneyball", 2011, ("Sports", "Drama"), 9.1, 7.6),
+    ("42", 2013, ("Sports", "Drama", "History"), 7.4, 7.5),
+    ("The Sandlot", 1993, ("Sports", "Family", "Comedy"), 8.0, 7.5),
+    ("Bull Durham", 1988, ("Sports", "Comedy", "Romance"), 7.1, 7.0),
+    ("A League of Their Own", 1992, ("Sports", "Comedy", "Drama"), 7.8, 7.3),
+    ("Ken Burns: Baseball", 1994, ("Sports", "Documentary", "History"), 6.5, 8.6),
+    ("The Battered Bastards of Baseball", 2014, ("Sports", "Documentary"), 6.2, 7.5),
+    ("Fastball", 2016, ("Sports", "Documentary"), 5.4, 7.0),
+    ("Screwball", 2018, ("Sports", "Documentary", "Comedy", "Crime"), 5.1, 6.8),
+    ("Knuckleball!", 2012, ("Sports", "Documentary"), 4.8, 7.1),
+    ("No No: A Dockumentary", 2014, ("Sports", "Documentary"), 4.9, 7.2),
+    ("Trouble with the Curve", 2012, ("Sports", "Drama"), 6.8, 6.8),
+    ("For Love of the Game", 1999, ("Sports", "Drama", "Romance"), 6.4, 6.6),
+    ("61*", 2001, ("Sports", "Drama"), 5.9, 7.5),
+    ("The Natural", 1984, ("Sports", "Drama"), 7.0, 7.2),
 )
 
 # Display names match the real provider mapping (HBO Max, Prime Video, ...).
@@ -917,13 +919,16 @@ class LiveSim:
                 camp_fade = max(camp_fade, fade)
                 cpool = [it for it in self.by_tag.get(g, [])
                          if it.item_id in unseen]
-                # the synthetic MLB shelf leads a Sports collection
+                # the synthetic MLB shelf leads a Sports collection. Displayed as
+                # Baseball (the user-facing directive label); Sports stays the
+                # internal taste dimension.
                 k_camp = (lambda it: (1 if it.item_id.startswith("tmdb-movie--") else 0,
                                       it.vote_average))
+                glabel = "Baseball" if g == "Sports" else genre_pretty(g)
                 rails.append(("campaign",
-                              f"🎭 Master Agent's {genre_pretty(g)} picks",
+                              f"⚾ Master Agent's {glabel} picks",
                               f"the Master Agent is pivoting you toward "
-                              f"{genre_pretty(g)} — {camp['days_left']} days left",
+                              f"{glabel} — {camp['days_left']} days left",
                               row(cpool, k_camp, want=12)))
         # -- dynamic rail ordering: rows rise and fall with the day's activity --
         # Continue watching stays pinned at the top; everything else is scored
