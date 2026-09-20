@@ -93,6 +93,14 @@ h2 { font-size: 20px; margin-bottom: 6px; }
 .tile {
   flex: 0 0 150px; cursor: pointer; border-radius: 10px; overflow: hidden;
   background: var(--panel2); border: 2px solid transparent; transition: transform .12s, border-color .12s;
+  position: relative;
+}
+.spon-badge {
+  position: absolute; top: 6px; left: 6px; z-index: 2;
+  background: rgba(0,0,0,.78); color: #ffd54a;
+  font-size: 10px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase;
+  padding: 3px 7px; border-radius: 5px; border: 1px solid rgba(255,213,74,.55);
+  pointer-events: none;
 }
 .tile:hover { transform: translateY(-4px); border-color: var(--teal); }
 .tile img { width: 150px; height: 225px; object-fit: cover; display: block; background: #000; }
