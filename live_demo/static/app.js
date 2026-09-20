@@ -619,6 +619,7 @@ function tileHTML(t) {
     ? `<img loading="lazy" src="${t.poster}" alt="">`
     : `<div class="tile-noposter"><span class="np-emoji">${GENRE_EMOJI[t.genre] || "🎞️"}</span><span class="np-title">${esc(t.title)}</span></div>`;
   return `<div class="tile" data-id="${t.id}" title="${esc(t.title)}">
+    ${t.sponsored ? `<span class="spon-badge">Sponsored</span>` : ""}
     ${art}
     <div class="ti"><b>${esc(t.title)}</b><span>${esc(t.genre)}</span>
     ${prov ? `<span class="prov">${esc(prov)}</span>` : ""}</div></div>`;
