@@ -48,7 +48,6 @@ $("master-go").addEventListener("click", sendMaster);
 $("camp-timeline-toggle").addEventListener("change", renderCampaignTimeline);
 $("master-input").addEventListener("keydown", (e) => { if (e.key === "Enter") sendMaster(); });
 $("explainer-x").addEventListener("click", () => { $("explainer").hidden = true; });
-renderMasterSuggestions();
 
 /* ---------- controls ---------- */
 async function togglePlay() {
@@ -151,6 +150,7 @@ function renderMasterSuggestions() {
       $("master-input").focus();
     }));
 }
+renderMasterSuggestions();
 async function sendMaster() {
   const inp = $("master-input");
   const text = inp.value.trim();
