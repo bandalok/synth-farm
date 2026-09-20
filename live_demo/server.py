@@ -12,6 +12,7 @@ Then open http://localhost:8000 and press Play.
 from __future__ import annotations
 
 import argparse
+import copy
 import hashlib
 import json
 import os
@@ -191,15 +192,30 @@ def _load_catalog_30(repo_root: str) -> SimpleNamespace:
     """
     path = os.path.join(repo_root, "data", "catalog_tmdb.json")
     entries = json.load(open(path))["items"]
+    # Exact-500 catalog: drop the 16 weakest fixture entries — anything
+    # posterless first, then the lowest-popularity non-Hindi titles (the
+    # Hindi set is protected for the Bollywood dimension) — to make room
+    # for the 16-title MLB shelf below.
+    drop_ids: set = set()
+    for e in entries:
+        if not e.get("poster_path"):
+            drop_ids.add(e["tmdb_id"])
+    non_hi = sorted((e for e in entries if e["tmdb_id"] not in drop_ids
+                     and e.get("original_language") != "hi"),
+                    key=lambda e: e.get("popularity", 0))
+    drop_ids.update(e["tmdb_id"] for e in non_hi[:16 - len(drop_ids)])
+    entries = [e for e in entries if e["tmdb_id"] not in drop_ids]
+    posters = json.load(open(os.path.join(repo_root, "data", "mlb_posters.json")))
     for i, (title, year, tags, pop, vote) in enumerate(_MLB_INSERTS):
         entries.append({
             "title": title, "media_type": "movie", "tmdb_id": -(1000 + i),
             "original_language": "en", "genre_ids": [],
-            "overview": "", "poster_path": "",
+            "overview": "", "poster_path": posters.get(title, ""),
             "release_date": f"{year}-01-01",
             "popularity": pop, "vote_average": vote, "vote_count": 0,
             "providers_flatrate": [], "synth_tags": list(tags),
         })
+    assert len(entries) == 500, f"catalog must be exactly 500, got {len(entries)}"
     items = []
     for e in entries:
         tags: list[str] = []
@@ -454,6 +470,19 @@ class LiveSim:
         self._camp_seq = 0
         self.master_log: list[dict] = []
 
+        # Pause-mode day stepping (◀ ▶ scrub): per-day state snapshots plus
+        # append-only day-stamped logs. Stepping back restores the exact
+        # state; stepping forward replays it bit-for-bit from snapshots.
+        # Any user mutation (direct/click) truncates the future first.
+        self._history: dict[int, dict] = {}
+        self._history_cap = 60
+        self._watch_log: list[dict] = []       # every watch/search/click event
+        self._feed_log: list[dict] = []        # global feed events
+        self._master_log_all: list[dict] = []  # master log, uncapped view
+        self._all_paths: list[tuple] = []      # (day, tastes.copy())
+        self._all_paths.append((0, self.tastes.copy()))
+        self._store_snapshot()
+
     # -- clustering / projection ------------------------------------------------
     def _recluster(self):
         for _ in range(25):
@@ -569,6 +598,9 @@ class LiveSim:
                 evs.append(ev)
                 if len(evs) > 400:
                     del evs[:len(evs) - 400]
+                self._watch_log.append(ev)
+                if len(self._watch_log) > 120000:
+                    del self._watch_log[:20000]
                 self.last_update[p.persona_id] = {
                     "genre": g, "kind": kind, "title": item.title,
                     "before": round(before, 4), "after": round(after, 4),
@@ -608,10 +640,14 @@ class LiveSim:
                            f"⏸ Sim paused so you can inspect — hit ▶ Play to watch it fade.")
                     self.master_log.append({"day": self.day, "text": msg})
                     self.master_log = self.master_log[-30:]
+                    self._master_log_all.append({"day": self.day, "text": msg})
+                    if len(self._master_log_all) > 1000:
+                        del self._master_log_all[:500]
                     ev = {"kind": "directed", "day": self.day, "text": msg,
                           "n_targets": len(camp["targets"]),
                           "targets": sorted(camp["targets"])}
                     self.events.append(ev)
+                    self._feed_log.append(ev)
                     for q in list(self.subscribers):
                         try:
                             q.put_nowait(ev)
@@ -629,20 +665,122 @@ class LiveSim:
         self.paths.append(self.tastes.copy())
         if len(self.paths) > 61:
             self.paths.pop(0)
+        self._all_paths.append((self.day, self.tastes.copy()))
+        if len(self._all_paths) > 400:
+            del self._all_paths[:100]
         self._recluster()
         self._refit_projection()
         self._recalc_paths_2d()
         self.events.extend(feed)
         self.events = self.events[-200:]
+        self._feed_log.extend(feed)
+        if len(self._feed_log) > 60000:
+            del self._feed_log[:10000]
         for q in list(self.subscribers):
             try:
                 q.put_nowait({"kind": "tick", "day": self.day, "feed": feed})
             except queue.Full:
                 pass
+        self._store_snapshot()
+
+    # -- pause-mode day stepping (◀ ▶) -----------------------------------------
+    def _store_snapshot(self):
+        self._history[self.day] = {
+            "tastes": self.tastes.copy(),
+            "watched": {k: set(v) for k, v in self.watched.items()},
+            "campaigns": copy.deepcopy(self.campaigns),
+            "campaign_history": copy.deepcopy(self.campaign_history),
+            "genre_plays": self.genre_plays.copy(),
+            "day_genre_total": self.day_genre_total.copy(),
+            "day_cluster_plays": dict(self.day_cluster_plays),
+            "cluster_trend": {k: v.copy() for k, v in self.cluster_trend.items()},
+            "global_trend": self.global_trend.copy(),
+            "centroids": self.centroids.copy(),
+            "labels": self.labels.copy(),
+            "last_update": copy.deepcopy(self.last_update),
+            "rng_state": copy.deepcopy(self.rng.bit_generator.state),
+        }
+        if len(self._history) > self._history_cap:
+            for d in sorted(self._history)[:len(self._history) - self._history_cap]:
+                del self._history[d]
+
+    def _restore(self, day: int):
+        snap = self._history[day]
+        self.day = day
+        self.tastes = snap["tastes"].copy()
+        self.watched = {k: set(v) for k, v in snap["watched"].items()}
+        self.campaigns = copy.deepcopy(snap["campaigns"])
+        self.campaign_history = copy.deepcopy(snap["campaign_history"])
+        self.genre_plays = snap["genre_plays"].copy()
+        self.day_genre_total = snap["day_genre_total"].copy()
+        self.day_cluster_plays = dict(snap["day_cluster_plays"])
+        self.cluster_trend = {k: v.copy()
+                              for k, v in snap["cluster_trend"].items()}
+        self.global_trend = snap["global_trend"].copy()
+        self.centroids = snap["centroids"].copy()
+        self.labels = snap["labels"].copy()
+        self.last_update = copy.deepcopy(snap["last_update"])
+        self.rng.bit_generator.state = copy.deepcopy(snap["rng_state"])
+        # Rebuild the day-stamped views as of the restored day.
+        self.agent_events = {pid: [] for pid in self.agent_events}
+        for e in self._watch_log:
+            if e["day"] <= day:
+                self.agent_events[e["persona_id"]].append(e)
+        for evs in self.agent_events.values():
+            if len(evs) > 400:
+                del evs[:len(evs) - 400]
+        self.events = [e for e in self._feed_log if e["day"] <= day][-200:]
+        self.master_log = [e for e in self._master_log_all
+                           if e["day"] <= day][-30:]
+        self.paths = [t.copy() for (d, t) in self._all_paths if d <= day][-61:]
+        self._recluster()
+        self._refit_projection()
+        self._recalc_paths_2d()
+
+    def _truncate_future(self):
+        """Drop any scrubbed-past future: a new user action starts a new branch."""
+        if any(d > self.day for d in self._history):
+            self._history = {d: s for d, s in self._history.items()
+                             if d <= self.day}
+            self._watch_log = [e for e in self._watch_log
+                               if e["day"] <= self.day]
+            self._feed_log = [e for e in self._feed_log
+                              if e["day"] <= self.day]
+            self._master_log_all = [e for e in self._master_log_all
+                                    if e["day"] <= self.day]
+            self._all_paths = [(d, t) for (d, t) in self._all_paths
+                               if d <= self.day]
+
+    def _broadcast(self, msg: dict):
+        for q in list(self.subscribers):
+            try:
+                q.put_nowait(msg)
+            except queue.Full:
+                pass
+
+    def step_day(self, direction: int) -> dict:
+        """Pause-mode single-day step. +1 forward, -1 backward."""
+        if self.running:
+            return {"ok": False, "error": "pause the sim to step through days"}
+        if direction == 1:
+            if self.day + 1 in self._history:
+                self._restore(self.day + 1)
+                self._broadcast({"kind": "tick", "day": self.day, "feed": []})
+            else:
+                self.tick()  # stores a snapshot and broadcasts itself
+        elif direction == -1:
+            if self.day == 0 or (self.day - 1) not in self._history:
+                return {"ok": False, "error": "already at the earliest day"}
+            self._restore(self.day - 1)
+            self._broadcast({"kind": "tick", "day": self.day, "feed": []})
+        else:
+            return {"ok": False, "error": "direction must be 1 or -1"}
+        return {"ok": True, "day": self.day}
 
     # -- user interaction -------------------------------------------------------
     def click(self, persona_id: str, item_id: str) -> dict:
         with self.lock:
+            self._truncate_future()  # a click starts a new timeline branch
             p = next((pp for pp in self.personas if pp.persona_id == persona_id), None)
             item = self.by_id.get(item_id)
             if p is None or item is None:
@@ -656,6 +794,12 @@ class LiveSim:
                       "genre": item.primary_genre, "live": True}
                 evs.append(ev)
                 self.events.append(ev)
+                self._watch_log.append(ev)
+                self._feed_log.append(ev)
+            if len(self._watch_log) > 120000:
+                del self._watch_log[:20000]
+            if len(self._feed_log) > 60000:
+                del self._feed_log[:10000]
             if len(evs) > 400:
                 del evs[:len(evs) - 400]
             self.watched[persona_id].add(item_id)
@@ -675,6 +819,7 @@ class LiveSim:
                                   "title": item.title, "genre": item.primary_genre})
                 except queue.Full:
                     pass
+            self._store_snapshot()  # the click is part of this day's state
             return self.agent_payload(p)
 
     # -- read APIs --------------------------------------------------------------
@@ -1142,6 +1287,7 @@ class LiveSim:
 
     def direct(self, text: str) -> dict:
         """The manager agent: turn a plain-English directive into a campaign."""
+        self._truncate_future()  # a new directive starts a new timeline branch
         parsed = self.parse_directive(text)
         if parsed["action"] == "stop":
             for c in self.campaigns:
@@ -1188,11 +1334,17 @@ class LiveSim:
                 self.running = False
             else:
                 end = parsed["start_day"] + parsed["days"] - 1
-                msg = (f"🎭 Master Agent: scheduled {', '.join(parsed['genres'])} "
-                       f"for {who} — days {parsed['start_day']}–{end}.")
+                glabels = [("Baseball" if g == "Sports" else genre_pretty(g))
+                           for g in parsed["genres"]]
+                msg = (f"🎭 Master Agent: scheduled {', '.join(glabels)} "
+                       f"for {who} — days {parsed['start_day']}–{end}. "
+                       f"Nothing changes on screen until day {parsed['start_day']}.")
                 camp["announced"] = False
         self.master_log.append({"day": self.day, "text": msg})
         self.master_log = self.master_log[-30:]
+        self._master_log_all.append({"day": self.day, "text": msg})
+        if len(self._master_log_all) > 1000:
+            del self._master_log_all[:500]
         n_targets = len(targets) if parsed["action"] == "start" else 0
         ev_targets = sorted(targets) if parsed["action"] == "start" else []
         # scheduled campaigns announce quietly — the energy blast fires when
@@ -1205,11 +1357,16 @@ class LiveSim:
               "scheduled": scheduled}
         self.events.append(ev)
         self.events = self.events[-200:]
+        self._feed_log.append(ev)
+        if len(self._feed_log) > 60000:
+            del self._feed_log[:10000]
         for q in list(self.subscribers):
             try:
                 q.put_nowait(ev)
             except queue.Full:
                 pass
+        if parsed["action"] != "unknown":
+            self._store_snapshot()  # user actions are part of this day's state
         return {"ok": True, "message": msg,
                 "campaigns": self._campaigns_json(),
                 "log": self.master_log[-10:]}
@@ -1268,6 +1425,7 @@ class Handler(BaseHTTPRequestHandler):
                     return self._json({
                         "day": sim.day, "running": sim.running,
                         "tick_seconds": sim.tick_seconds,
+                        "can_step_back": (sim.day - 1) in sim._history,
                         "n_agents": sim.n_agents,
                         "n_clusters": sim.k,
                         "clusters": sim.cluster_info(),
@@ -1372,7 +1530,15 @@ class Handler(BaseHTTPRequestHandler):
                     elif action == "pause":
                         sim.running = False
                     elif action == "step":
-                        sim.tick()
+                        if sim.running:
+                            sim.tick()
+                        else:
+                            sim.step_day(1)  # paused: restore-or-advance one day
+                    elif action == "step_back":
+                        r = sim.step_day(-1)
+                        return self._json({"ok": r["ok"], "day": sim.day,
+                                           "running": sim.running,
+                                           "error": r.get("error")})
                     elif action == "reset":
                         sim.reset()
                     elif action == "speed":
