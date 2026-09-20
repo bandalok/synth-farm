@@ -58,7 +58,12 @@ async function togglePlay() {
 }
 $("btn-play").addEventListener("click", togglePlay);
 $("day-counter").addEventListener("click", togglePlay);
-$("btn-step").addEventListener("click", async () => {
+$("btn-step-back").addEventListener("click", async () => {
+  await api("/api/control", { method: "POST", headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({ action: "step_back" }) });
+  refreshAll();
+});
+$("btn-step-fwd").addEventListener("click", async () => {
   await api("/api/control", { method: "POST", headers: {"Content-Type": "application/json"},
     body: JSON.stringify({ action: "step" }) });
   refreshAll();
@@ -119,6 +124,10 @@ async function refreshStatus() {
   state.status = await api("/api/status");
   $("day-num").textContent = state.status.day;
   $("btn-play").textContent = state.status.running ? "⏸ Pause" : "▶ Play";
+  // Day-stepping arrows only work while paused; ◀ also needs history.
+  const paused = !state.status.running;
+  $("btn-step-back").disabled = !(paused && state.status.can_step_back);
+  $("btn-step-fwd").disabled = !paused;
   renderClusters();
   if ($("tab-master").classList.contains("active")) {
     renderCampaigns(state.status.campaigns || []);
@@ -135,10 +144,10 @@ async function refreshStatus() {
 }
 /* ---------- master agent ---------- */
 const MASTER_SUGGESTIONS = [
-  ["⚾", "Baseball blast", "pivot all users to baseball from day 11 to day 20"],
-  ["🎃", "Horror nights", "pivot some users to horror on day 5 for 3 days"],
-  ["🚀", "Sci-fi weekend", "pivot half the users to sci-fi starting day 8 for 4 days"],
-  ["💘", "Romance week", "pivot 30% of users to romance from day 14 to day 21"],
+  ["⚾", "Baseball blast", "pivot all users to baseball for 7 days"],
+  ["🎃", "Horror nights", "pivot some users to horror for 3 days"],
+  ["🚀", "Sci-fi weekend", "pivot half the users to sci-fi for 4 days"],
+  ["💘", "Romance week", "pivot 30% of users to romance for 7 days"],
   ["🤣", "Comedy · cluster 2", "pivot cluster 2 to comedy for 7 days"],
 ];
 function renderMasterSuggestions() {
