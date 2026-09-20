@@ -440,3 +440,31 @@ def test_home_screen_tiles_all_carry_poster_urls():
     assert len(tiles) > 0
     missing = [t["title"] for t in tiles if not t["poster"]]
     assert missing == [], f"{len(missing)} tiles without poster urls"
+
+# ---------- sponsored search ----------
+
+def test_search_pins_exactly_one_sponsored_first():
+    s = LiveSim(n_agents=24, seed=7, tick_seconds=0.05)
+    r = s.search("a", persona_id="persona-00006")
+    assert len(r) > 1
+    assert r[0].get("sponsored") is True
+    assert sum(1 for x in r if x.get("sponsored")) == 1
+
+def test_sponsored_matches_query_and_is_deterministic():
+    s = LiveSim(n_agents=24, seed=7, tick_seconds=0.05)
+    r1 = s.search("aveng", persona_id="persona-00006")
+    r2 = s.search("aveng", persona_id="persona-00006")
+    assert r1[0]["title"] == r2[0]["title"]
+    assert "aveng" in r1[0]["title"].lower()
+    ids = [x["id"] for x in r1]
+    assert len(ids) == len(set(ids)), "sponsored tile must not duplicate"
+
+def test_sponsored_does_not_break_personalized_organics():
+    s = LiveSim(n_agents=24, seed=7, tick_seconds=0.05)
+    r = s.search("a", persona_id="persona-00006")
+    organics = [x for x in r if not x.get("sponsored")]
+    assert organics[0]["title"] == "Aashiqui 2"  # Bollywood still leads organics
+
+def test_search_no_match_returns_empty():
+    s = LiveSim(n_agents=24, seed=7, tick_seconds=0.05)
+    assert s.search("zzzqqqxxy") == []
