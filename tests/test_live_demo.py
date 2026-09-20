@@ -276,8 +276,9 @@ def test_campaign_collection_pinned_for_targets():
     rails = s.home_screen(s.personas[tgt])["rails"]
     camp = next(r for r in rails if "Master Agent" in r["title"])
     assert rails.index(camp) <= 1  # prominent: top two
-    assert "Sports" in camp["title"]
+    assert "Baseball" in camp["title"]  # user-facing label, not internal genre
     assert camp["items"]  # non-empty
+    assert all(i["genre"] == "Sports" for i in camp["items"])  # reads as sports
     assert camp["items"][0]["title"] in ("Ken Burns: Baseball", "Moneyball",
                                          "Field of Dreams", "42")
     others = [i for i in range(s.n_agents)
