@@ -443,21 +443,26 @@ def test_home_screen_tiles_all_carry_poster_urls():
 
 # ---------- sponsored search ----------
 
-def test_search_pins_exactly_one_sponsored_first():
+def test_search_has_exactly_one_sponsored_never_first():
     s = LiveSim(n_agents=24, seed=7, tick_seconds=0.05)
-    r = s.search("a", persona_id="persona-00006")
-    assert len(r) > 1
-    assert r[0].get("sponsored") is True
-    assert sum(1 for x in r if x.get("sponsored")) == 1
+    for _ in range(20):
+        r = s.search("a", persona_id="persona-00006")
+        assert len(r) > 4
+        spon_idx = [i for i, x in enumerate(r) if x.get("sponsored")]
+        assert len(spon_idx) == 1
+        assert spon_idx[0] in (1, 2, 3), f"sponsored at {spon_idx[0]}, want 2nd-4th slot"
 
-def test_sponsored_matches_query_and_is_deterministic():
+def test_sponsored_title_deterministic_but_slot_varies():
     s = LiveSim(n_agents=24, seed=7, tick_seconds=0.05)
-    r1 = s.search("aveng", persona_id="persona-00006")
-    r2 = s.search("aveng", persona_id="persona-00006")
-    assert r1[0]["title"] == r2[0]["title"]
-    assert "aveng" in r1[0]["title"].lower()
-    ids = [x["id"] for x in r1]
-    assert len(ids) == len(set(ids)), "sponsored tile must not duplicate"
+    titles, slots = set(), set()
+    for _ in range(30):
+        r = s.search("aveng", persona_id="persona-00006")
+        i = next(i for i, x in enumerate(r) if x.get("sponsored"))
+        titles.add(r[i]["title"])
+        slots.add(i)
+        assert "aveng" in r[i]["title"].lower()
+    assert titles == {"Avengers: Endgame"}
+    assert len(slots) > 1, "sponsored slot should vary across searches"
 
 def test_sponsored_does_not_break_personalized_organics():
     s = LiveSim(n_agents=24, seed=7, tick_seconds=0.05)
