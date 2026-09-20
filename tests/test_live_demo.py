@@ -320,3 +320,22 @@ def test_catalog_500_unique_with_required_keys():
     assert all(set(it.keys()) == req for it in items)
     assert len({(it["media_type"], it["tmdb_id"]) for it in items}) == 500
     assert sum(1 for it in items if it["original_language"] == "hi") >= 180
+
+def test_campaign_going_live_pauses_sim_for_inspection():
+    # immediate campaign freezes the sim so its visuals can be inspected
+    s = LiveSim(n_agents=24, seed=7, tick_seconds=0.05)
+    s.running = True
+    s.direct("pivot some users to baseball for 7 days")
+    assert s.running is False
+    assert "paused" in s.campaigns[0]["text"] or "⏸" in s.master_log[-1]["text"]
+
+def test_scheduled_campaign_activation_pauses_sim():
+    s = LiveSim(n_agents=24, seed=7, tick_seconds=0.05)
+    s.direct("pivot some users to baseball from day 11 to day 20")
+    s.running = True
+    for _ in range(11):
+        with s.lock:
+            s.tick()
+    assert s._camp_active(s.campaigns[0])
+    assert s.running is False
+    assert "⏸" in s.master_log[-1]["text"]
