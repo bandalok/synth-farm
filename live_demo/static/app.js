@@ -165,13 +165,15 @@ async function sendMaster() {
   renderMasterLog(r.log || []);
   inp.value = "";
 }
+/* user-facing campaign label: internal genre "Sports" displays as Baseball */
+const campLabel = (g) => g === "Sports" ? "Baseball" : g;
 function renderCampaigns(cs) {
   $("campaigns").innerHTML = cs.length ? cs.map((c) => {
     const strength = Math.round(100 * c.days_left / Math.max(c.days_total, 1));
     const sched = c.status === "scheduled";
     return `
     <div class="card" style="border-top:3px solid ${sched ? "var(--teal)" : "var(--amber)"}">
-      <h3>🎭 ${esc(c.genres.join(" + "))}${sched ? " <span class='pin'>📅 scheduled</span>" : ""}</h3>
+      <h3>🎭 ${esc(c.genres.map(campLabel).join(" + "))}${sched ? " <span class='pin'>📅 scheduled</span>" : ""}</h3>
       <div class="meta">${c.n_targets} agents · ${sched ? `<b>starts day ${c.start_day}</b>` : `<b>${c.days_left}</b> days left`}</div>
       <div class="bar-row" style="margin-top:8px"><div class="bar"><div class="fill" style="width:${strength}%;background:${sched ? "var(--teal)" : "var(--amber)"}"></div></div><div class="val">${strength}%</div></div>
       <div class="meta" style="opacity:.7">“${esc(c.text)}”</div>
@@ -370,7 +372,7 @@ function drawMasterPanel() {
   if (note) {
     if (hasLive) {
       note.innerHTML = `🎯 <b>${targeted.size}</b> agents under live campaign energy: ` +
-        liveCamps.map((c) => `${esc(c.genres.join(" + "))} <span style="opacity:.65">(${c.days_left}d left)</span>`).join(" · ");
+        liveCamps.map((c) => `${esc(c.genres.map(campLabel).join(" + "))} <span style="opacity:.65">(${c.days_left}d left)</span>`).join(" · ");
       note.style.display = "";
     } else {
       note.style.display = "none";
@@ -460,7 +462,7 @@ async function refreshAgents() {
   $("agent-cards").innerHTML = d.agents.map((a) => `
     <div class="card${(a.targeted && a.targeted.length) ? " targeted" : ""}" data-id="${a.id}">
       <h3>${esc(a.archetype_pretty)}</h3>
-      <div class="meta">${a.id} · cluster <b style="color:${CLUSTER_COLORS[a.cluster % 6]}">${a.cluster}</b>${pinBadge(a)}${(a.targeted && a.targeted.length) ? ` · <span class="tgt">🎯 ${esc(a.targeted.join(" + "))} energy</span>` : ""}${(a.scheduled && a.scheduled.length) ? ` · <span class="pin">📅 ${esc(a.scheduled.join(" + "))} scheduled</span>` : ""}</div>
+      <div class="meta">${a.id} · cluster <b style="color:${CLUSTER_COLORS[a.cluster % 6]}">${a.cluster}</b>${pinBadge(a)}${(a.targeted && a.targeted.length) ? ` · <span class="tgt">🎯 ${esc(a.targeted.map(campLabel).join(" + "))} energy</span>` : ""}${(a.scheduled && a.scheduled.length) ? ` · <span class="pin">📅 ${esc(a.scheduled.map(campLabel).join(" + "))} scheduled</span>` : ""}</div>
       <div class="meta">into <b>${esc(a.top_genre)}</b> · ${a.n_plays} plays</div>
     </div>`).join("");
   // remember which campaign targeting the cards reflect, so the live poller
@@ -471,8 +473,8 @@ async function refreshAgents() {
     c.addEventListener("click", () => openAgentPage(c.dataset.id)));
   const pick = $("home-agent-pick");
   const cur = pick.value;
-  pick.innerHTML = d.agents.map((a) =>
-    `<option value="${a.id}">${a.pivot ? "★ " : ""}${esc(a.archetype_pretty)} — ${a.id}</option>`).join("");
+  pick.innerHTML = d.agents.map((a, i) =>
+    `<option value="${a.id}">${a.pivot ? "★ " : ""}Agent ${i + 1} · ${esc(a.archetype_pretty)} — ${a.id}</option>`).join("");
   if (cur) pick.value = cur;
   if (!state.homeAgent && d.agents.length) {
     state.homeAgent = d.agents[0].id;
@@ -606,7 +608,7 @@ function tileHTML(t) {
   const prov = (t.providers || []).slice(0, 2).join(" · ");
   const art = t.poster
     ? `<img loading="lazy" src="${t.poster}" alt="">`
-    : `<div class="tile-noposter"><span>${GENRE_EMOJI[t.genre] || "🎞️"}</span></div>`;
+    : `<div class="tile-noposter"><span class="np-emoji">${GENRE_EMOJI[t.genre] || "🎞️"}</span><span class="np-title">${esc(t.title)}</span></div>`;
   return `<div class="tile" data-id="${t.id}" title="${esc(t.title)}">
     ${art}
     <div class="ti"><b>${esc(t.title)}</b><span>${esc(t.genre)}</span>
