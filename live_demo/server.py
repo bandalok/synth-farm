@@ -1206,7 +1206,18 @@ class LiveSim:
             boost = 2.0 if it.title.lower().startswith(ql) else (1.0 if ql in it.title.lower() else 0.0)
             scored.append((boost, s, it))
         scored.sort(key=lambda t: (-t[0], -t[1], t[2].item_id))
-        return [self._item_json(it, s) for _, s, it in scored[:n]]
+        # Sponsored search: exactly one slot. The highest-popularity match for
+        # the query is pinned first with a "Sponsored" tag, ahead of the
+        # personalized organic ranking. Deterministic per query.
+        out = []
+        if scored:
+            spon = max(scored, key=lambda t: t[2].popularity)
+            d = self._item_json(spon[2], spon[1])
+            d["sponsored"] = True
+            out.append(d)
+            scored = [t for t in scored if t[2] is not spon[2]]
+        out.extend(self._item_json(it, s) for _, s, it in scored[:n - len(out)])
+        return out
 
     # -- main loop --------------------------------------------------------------
     def loop(self):
