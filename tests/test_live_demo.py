@@ -173,7 +173,14 @@ def test_bollywood_stays_with_agent_seven():
               if "Bollywood" in s.by_id[x["id"]].genre_tags)
     # catalog grew 510->700; drifted tastes surface fewer Bollywood rails
     # (98/260 -> 30/260), but agent #7 stays the clear Bollywood outlier.
-    assert bw7 / total7 > 0.10, "agent #7 should stay Bollywood-heavy"
+    # Persona #8 (sports pivot, added later) watches heavy sports from day 1,
+    # shifting shared cluster/global trends, so the absolute share drifted
+    # again (30/260 -> 15/260). The pivot itself is intact: agent #7 is
+    # still the #1 Bollywood taste after the same 5 ticks.
+    assert bw7 / total7 > 0.05, "agent #7 should stay Bollywood-heavy"
+    bw_taste = [float(s.tastes[i][s.gidx["Bollywood"]])
+                for i in range(s.n_agents)]
+    assert bw_taste.index(max(bw_taste)) == 6
 
 
 def test_baseball_duo_are_distinct_sports_lovers():
@@ -311,7 +318,10 @@ def test_scheduled_campaign_fires_on_start_day():
     # catalog grew 510->700; the target no longer watches Ken Burns:
     # Baseball organically during the 11 pre-campaign ticks, so the
     # unseen-only rail now leads with it instead of Moneyball.
-    assert camp["items"][0]["title"] == "Ken Burns: Baseball"
+    # Persona #8 (sports pivot) later shifted shared trends again, so the
+    # target's organic pre-campaign watches now include Ken Burns:
+    # Baseball and the unseen-only rail leads with Moneyball instead.
+    assert camp["items"][0]["title"] == "Moneyball"
     # expires 9 days after going live and lands in history
     for _ in range(9):
         with s.lock:

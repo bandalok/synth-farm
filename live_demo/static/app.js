@@ -39,6 +39,7 @@ document.querySelectorAll("nav.tabs button").forEach((b) => {
     }
     if (b.dataset.tab === "master" && state.status) {
       renderCampaigns(state.status.campaigns || []);
+      renderRecommendation(state.status.recommendation || null);
       renderCampaignTimeline();
       renderMasterLog(state.status.master_log || []);
     }
@@ -131,6 +132,7 @@ async function refreshStatus() {
   renderClusters();
   if ($("tab-master").classList.contains("active")) {
     renderCampaigns(state.status.campaigns || []);
+    renderRecommendation(state.status.recommendation || null);
     renderCampaignTimeline();
     renderMasterLog(state.status.master_log || []);
     renderCampaignAnalytics();
@@ -192,6 +194,32 @@ function renderCampaigns(cs) {
       <div class="meta" style="opacity:.7">“${esc(c.text)}”</div>
     </div>`;
   }).join("") : `<p class="sub">No live campaigns.</p>`;
+}
+/* ---------- recommended campaign ---------- */
+function renderRecommendation(rec) {
+  const box = $("recommendation");
+  if (!rec) { box.innerHTML = ""; return; }
+  if (rec.launchable) {
+    box.innerHTML = `
+    <div class="card" style="border-top:3px solid var(--amber)">
+      <h3>${esc(rec.title)}</h3>
+      <div class="meta">${esc(rec.description)}</div>
+      <div style="margin-top:10px"><button class="go-btn" id="rec-launch">Launch</button></div>
+    </div>`;
+    /* reuse the existing start path: the button just feeds the Master
+       Agent directive box and goes through sendMaster() -> /api/direct */
+    $("rec-launch").addEventListener("click", () => {
+      $("master-input").value = rec.directive;
+      sendMaster().then(() => refreshStatus());
+    });
+  } else {
+    const l = rec.live || {};
+    box.innerHTML = `
+    <div class="card" style="border-top:3px solid var(--amber)">
+      <h3>${esc(rec.title)}</h3>
+      <div class="meta"><span class="pin">● live</span> — ${l.n_targets} agents · ${l.days_left} days left</div>
+    </div>`;
+  }
 }
 function renderMasterLog(log) {
   $("master-log").innerHTML = log.slice().reverse().map((l) =>
@@ -416,7 +444,8 @@ function drawMasterPanel() {
   if (note) {
     if (hasLive) {
       note.innerHTML = `🎯 <b>${targeted.size}</b> agents under live campaign energy: ` +
-        liveCamps.map((c) => `${esc(c.genres.map(campLabel).join(" + "))} <span style="opacity:.65">(${c.days_left}d left)</span>`).join(" · ");
+        liveCamps.map((c) => `${esc((c.genres && c.genres.length)
+          ? c.genres.map(campLabel).join(" + ") : (c.provider || ""))} <span style="opacity:.65">(${c.days_left}d left)</span>`).join(" · ");
       note.style.display = "";
     } else {
       note.style.display = "none";

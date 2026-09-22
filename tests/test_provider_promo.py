@@ -12,6 +12,9 @@ invariants (700 titles, 12 FOX One titles, posters), and scheduled campaigns.
 import os
 import sys
 
+import json
+import subprocess
+
 import numpy as np
 import pytest
 
@@ -375,3 +378,102 @@ def test_scheduled_promo_starts_and_decrements():
     rail = promo_rail(sim.home_screen(sim.personas[pi]))
     assert rail is not None
     assert sim._campaigns_json()[-1]["status"] == "live"
+
+
+# ---------- 15. FoxOne glow fix: /api/agents target labels ----------
+
+def _api_agents_labels(sim, pi):
+    """Replicates the /api/agents handler's targeted/scheduled labeling
+    comprehension exactly, using the same LiveSim._campaign_target_labels
+    helper the handler now calls. (No HTTP test harness exists in this
+    suite, so the labels are computed the same way the handler computes
+    them — the helper is the shared point of truth.)"""
+    return (
+        sorted({label for c in sim.campaigns
+                for label in sim._campaign_target_labels(c)
+                if pi in c["targets"] and sim._camp_active(c)}),
+        sorted({label for c in sim.campaigns
+                for label in sim._campaign_target_labels(c)
+                if pi in c["targets"] and not sim._camp_active(c)}),
+    )
+
+
+def test_target_labels_helper_promo_returns_provider():
+    sim = make_sim()
+    camp = start_promo(sim)
+    assert sim._campaign_target_labels(camp) == ["FOX One"]
+
+
+def test_target_labels_helper_genre_returns_genres():
+    sim = make_sim()
+    sim.direct("pivot some users to football for 7 days")
+    camp = sim.campaigns[-1]
+    assert camp["genres"] == ["Sports"]  # not a provider_promo campaign
+    assert sim._campaign_target_labels(camp) == ["Sports"]
+
+
+def test_target_labels_helper_provider_fallback():
+    sim = make_sim()
+    assert sim._campaign_target_labels(
+        {"campaign_type": "provider_promo", "provider": None, "genres": []}
+    ) == ["promotion"]
+
+
+def test_promo_target_gets_fox_one_label():
+    sim = make_sim()
+    camp = start_promo(sim)
+    assert sim._camp_active(camp)
+    pi = next(iter(camp["targets"]))
+    targeted, _scheduled = _api_agents_labels(sim, pi)
+    assert targeted == ["FOX One"]
+    non_target = next(i for i in range(sim.n_agents)
+                      if i not in camp["targets"])
+    assert _api_agents_labels(sim, non_target) == ([], [])
+
+
+def test_genre_campaign_labels_unchanged():
+    """Genre-campaign output must be byte-identical to the pre-fix handler,
+    which iterated c['genres'] directly."""
+    sim = make_sim()
+    sim.direct("pivot some users to football for 7 days")
+    camp = sim.campaigns[-1]
+    pi = next(iter(camp["targets"]))
+    targeted, scheduled = _api_agents_labels(sim, pi)
+    # old handler shape, computed without the helper, as the regression baseline
+    old_targeted = sorted({g for g in camp["genres"]
+                           if pi in camp["targets"]
+                           and sim._camp_active(camp)})
+    assert targeted == old_targeted == ["Sports"]
+    assert scheduled == []
+
+
+def test_frontend_card_glow_conditionals_with_promo_payload():
+    """The agent card (live_demo/static/app.js, the card div and the badge)
+    keys glow + badge ENTIRELY off a.targeted, a generic consumer: any
+    non-empty list triggers the glow class and the badge join. Since the
+    fixed server now sends targeted=['FOX One'], the frontend needs no
+    change. Evaluate the card's exact conditionals via node against a
+    promo-shaped payload, and show the pre-fix payload ([]) stayed dark."""
+    js = r"""
+    // mirrored verbatim from app.js: campLabel (line 179) + the card div
+    // class conditional and badge conditional (renderAgentCards).
+    const campLabel = (g) => g === "Sports" ? "Baseball" : g;
+    const esc = (s) => String(s);
+    const run = (a) => ({
+      cls: (a.targeted && a.targeted.length) ? " targeted" : "",
+      badge: (a.targeted && a.targeted.length)
+        ? ` · <span class="tgt">🎯 ${esc(a.targeted.map(campLabel).join(" + "))} energy</span>` : "",
+    });
+    process.stdout.write(JSON.stringify({
+      fixed: run({targeted: ["FOX One"]}),  // what fixed /api/agents sends
+      preFix: run({targeted: []}),          // what it used to send (no glow)
+    }));
+    """
+    out = subprocess.run(["node", "-e", js], capture_output=True,
+                         text=True, check=True).stdout
+    res = json.loads(out)
+    assert res["fixed"]["cls"] == " targeted", "glow class must fire"
+    assert "FOX One energy" in res["fixed"]["badge"], \
+        "badge must read '🎯 FOX One energy'"
+    assert res["preFix"]["cls"] == "" and res["preFix"]["badge"] == "", \
+        "pre-fix payload (empty list) never glowed — the documented bug"

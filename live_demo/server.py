@@ -452,6 +452,21 @@ class LiveSim:
                          ("Comedy", 0.08)):
                 bw[self.gidx[g]] = w
             self.tastes[self.pivot_idx] = bw / bw.sum()
+        # Agent #8 (index 7): the dedicated Sports pivot — a sports-heavy
+        # taste vector from day 1 so the sim always has a sports diehard
+        # among the regular population. Mirrors the Bollywood pivot exactly
+        # (same spike math, same 0.015 base); the hand-pinned sports anchors
+        # stay untouched and remain the two heaviest sports users.
+        # (Same guard as above: the requested count keeps the pivot off the
+        # appended anchors.)
+        self.sports_pivot_idx = 7 if self.base_agents > 7 else None
+        if self.sports_pivot_idx is not None:
+            sw = np.full(len(self.genres), 0.015)
+            sw[self.gidx["Sports"]] = 0.45
+            for g, w in (("Documentary", 0.12), ("Drama", 0.10),
+                         ("Comedy", 0.08), ("Reality", 0.08)):
+                sw[self.gidx[g]] = w
+            self.tastes[self.sports_pivot_idx] = sw / sw.sum()
         # The hand-pinned anchors keep their tuned tastes instead of the cold
         # start — the live sim reads self.tastes, not Persona.taste.
         for p in self.personas:
@@ -925,6 +940,7 @@ class LiveSim:
                               for e in evs[-14:][::-1]],
             "cluster": int(self.labels[pi]),
             "is_pivot": pi == self.pivot_idx,
+            "is_sports_pivot": pi == self.sports_pivot_idx,
             "home_screen": self.home_screen(p),
         }
 
@@ -1534,6 +1550,16 @@ class LiveSim:
         """A campaign only steers the sim once its start day arrives."""
         return c["start_day"] <= self.day
 
+    def _campaign_target_labels(self, c: dict) -> list:
+        """Human labels for a campaign's per-agent target badges.
+
+        provider_promo campaigns store genres=[] (they steer titles, not
+        tastes), so their targets get the provider name instead of genres.
+        """
+        if c.get("campaign_type") == "provider_promo":
+            return [c.get("provider") or "promotion"]
+        return list(c.get("genres") or [])
+
     def _campaigns_json(self) -> list[dict]:
         return [{"id": c["id"], "text": c["text"], "genres": c["genres"],
                  "campaign_type": c.get("campaign_type", "genre_pivot"),
@@ -1816,6 +1842,32 @@ class LiveSim:
                 "campaigns": self._campaigns_json(),
                 "log": self.master_log[-10:]}
 
+    def recommendation(self) -> dict:
+        """The Master Agent's recommended campaign card: a Fox One
+        subscription push. Launchable while no live FOX One provider_promo
+        campaign exists; once one is live the card points at it instead."""
+        directive = ("run FoxOne promotion to those who don't have active "
+                     "subscription of it")
+        live = next((c for c in self.campaigns
+                     if c.get("campaign_type") == "provider_promo"
+                     and c.get("provider") == "FOX One"
+                     and self._camp_active(c)), None)
+        base = {"id": "foxone_promo",
+                "title": "Fox One subscription push",
+                "description": ("Targets agents without an active Fox One "
+                                "subscription, shows them a \u201cTrending on "
+                                "FoxOne\u201d promoted rail, and tracks "
+                                "impressions, clicks and subscription "
+                                "conversions."),
+                "directive": directive}
+        if live is None:
+            return {**base, "launchable": True, "live": None}
+        return {**base, "launchable": False,
+                "live": {"id": live["id"],
+                         "n_targets": len(live["targets"]),
+                         "days_left": live["days_left"],
+                         "start_day": live["start_day"]}}
+
 
 # ----------------------------------------------------------------------------
 # HTTP server (stdlib only)
@@ -1881,6 +1933,7 @@ class Handler(BaseHTTPRequestHandler):
                         "campaigns": sim._campaigns_json(),
                         "campaign_history": sim.campaign_history[-20:],
                         "master_log": sim.master_log[-10:],
+                        "recommendation": sim.recommendation(),
                     })
             if route == "/api/agents":
                 with sim.lock:
@@ -1894,16 +1947,18 @@ class Handler(BaseHTTPRequestHandler):
                                             if e["type"] == "play"]),
                             "cluster": int(sim.labels[pi]),
                             "pivot": pi == sim.pivot_idx,
+                            "sports_pivot": pi == sim.sports_pivot_idx,
                             # hand-pinned taste anchor, e.g. "Sports"
                             "pin": ANCHOR_PINS.get(p.persona_id),
-                            # live campaign genres hitting this agent, if any
+                            # live campaign genres (or provider names for promos)
+                            # hitting this agent, if any
                             "targeted": sorted({g for c in sim.campaigns
-                                                for g in c["genres"]
+                                                for g in sim._campaign_target_labels(c)
                                                 if pi in c["targets"]
                                                 and sim._camp_active(c)}),
-                            # scheduled-but-not-yet-live campaign genres
+                            # scheduled-but-not-yet-live campaign labels
                             "scheduled": sorted({g for c in sim.campaigns
-                                                 for g in c["genres"]
+                                                 for g in sim._campaign_target_labels(c)
                                                  if pi in c["targets"]
                                                  and not sim._camp_active(c)}),
                         })
