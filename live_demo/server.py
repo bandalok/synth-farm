@@ -635,7 +635,7 @@ class LiveSim:
                     camp["announced"] = True
                     self.running = False
                     who = f"{len(camp['targets'])} agents"
-                    msg = (f"🎭 Master Agent: pivoting {who} toward "
+                    msg = (f"Master Agent: pivoting {who} toward "
                            f"{', '.join(camp['genres'])} for "
                            f"{camp['days_total']} days. "
                            f"⏸ Sim paused so you can inspect — hit ▶ Play to watch it fade.")
@@ -1266,7 +1266,7 @@ class LiveSim:
             if pi in camp["targets"] and self._camp_active(camp) and any(
                     vec[self.gidx[g]] > 0.25 for g in camp["genres"]):
                 signals.append(
-                    f"🎭 Master Agent — “{camp['text'][:70]}” is steering "
+                    f"Master Agent — “{camp['text'][:70]}” is steering "
                     f"viewers like you toward this")
                 break
 
@@ -1537,7 +1537,7 @@ class LiveSim:
             who = (f"cluster {parsed['cluster']}" if parsed["cluster"] is not None
                    else f"{len(targets)} agents")
             if parsed["start_day"] <= self.day:
-                msg = (f"🎭 Master Agent: pivoting {who} toward "
+                msg = (f"Master Agent: pivoting {who} toward "
                        f"{', '.join(parsed['genres'])} for {parsed['days']} days. "
                        f"⏸ Sim paused so you can inspect — hit ▶ Play to watch it fade.")
                 camp["announced"] = True
@@ -1549,7 +1549,7 @@ class LiveSim:
                 end = parsed["start_day"] + parsed["days"] - 1
                 glabels = [("Baseball" if g == "Sports" else genre_pretty(g))
                            for g in parsed["genres"]]
-                msg = (f"🎭 Master Agent: scheduled {', '.join(glabels)} "
+                msg = (f"Master Agent: scheduled {', '.join(glabels)} "
                        f"for {who} — days {parsed['start_day']}–{end}. "
                        f"Nothing changes on screen until day {parsed['start_day']}.")
                 camp["announced"] = False
