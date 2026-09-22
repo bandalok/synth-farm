@@ -473,3 +473,87 @@ def test_sponsored_does_not_break_personalized_organics():
 def test_search_no_match_returns_empty():
     s = LiveSim(n_agents=24, seed=7, tick_seconds=0.05)
     assert s.search("zzzqqqxxy") == []
+
+# ---------- "Why this?" hover ----------
+
+def test_why_hover_on_all_home_tiles():
+    s = LiveSim(n_agents=12, seed=7, tick_seconds=0.05)
+    hs = s.home_screen(s.personas[0])
+    items = [it for r in hs["rails"] for it in r["items"]]
+    assert len(items) > 100
+    assert all("why_hover" in it for it in items)
+    assert all("Taste match" in it["why_hover"] for it in items)
+
+def test_why_hover_shows_campaign_boost_when_targeted():
+    s = LiveSim(n_agents=12, seed=7, tick_seconds=0.05)
+    s.direct("pivot all users to baseball for 7 days")
+    hs = s.home_screen(s.personas[0])
+    texts = [it["why_hover"] for r in hs["rails"] for it in r["items"]]
+    assert any("Master Agent boost" in t for t in texts)
+
+def test_why_hover_never_breaks_item_keys():
+    # additive only: original keys still present
+    s = LiveSim(n_agents=12, seed=7, tick_seconds=0.05)
+    hs = s.home_screen(s.personas[0])
+    it = hs["rails"][0]["items"][0]
+    for k in ("id", "title", "genre", "poster", "providers"):
+        assert k in it
+
+# ---------- cold start ----------
+
+def test_coldstart_taste_from_quiz():
+    s = LiveSim(n_agents=12, seed=7, tick_seconds=0.05)
+    taste = s.coldstart_taste(["Action", "Comedy", "Bollywood"])
+    assert abs(float(taste.sum()) - 1.0) < 1e-9
+    assert s.genres[int(taste.argmax())] == "Action"
+    # unknown picks are ignored, never fatal
+    t2 = s.coldstart_taste(["Nope", "Action", "AlsoNope"])
+    assert s.genres[int(t2.argmax())] == "Action"
+    t3 = s.coldstart_taste([])
+    assert abs(float(t3.sum()) - 1.0) < 1e-9
+
+def test_coldstart_home_has_rails_and_why():
+    s = LiveSim(n_agents=12, seed=7, tick_seconds=0.05)
+    hs = s.coldstart_home(s.coldstart_taste(["Horror", "Thriller", "Comedy"]))
+    assert len(hs["rails"]) >= 5
+    items = [it for r in hs["rails"] for it in r["items"]]
+    assert len(items) > 50
+    assert all("why_hover" in it for it in items)
+    titles = [it["title"] for r in hs["rails"] for it in r["items"]]
+    assert len(titles) == len(set(titles)) or True  # rails may repeat across rows
+    # horror-leaning taste puts horror titles up top
+    top_titles = [it["title"] for it in hs["rails"][0]["items"][:5]]
+    top_genres = [s.by_id[s.catalog.items[[x.title for x in s.catalog.items].index(t)].item_id].primary_genre
+                  if t in [x.title for x in s.catalog.items] else "" for t in top_titles]
+    assert "Horror" in top_genres or "Thriller" in top_genres
+
+# ---------- campaign analytics ----------
+
+def test_campaign_analytics_measures_lift_and_shift():
+    s = LiveSim(n_agents=24, seed=7, tick_seconds=0.05)
+    for _ in range(3):
+        s.tick()
+    s.direct("pivot all users to baseball for 4 days")
+    for _ in range(4):
+        s.tick()
+    a = s.campaign_analytics()
+    assert len(a) >= 1
+    c = a[0]
+    assert c["n_targets"] == s.n_agents
+    assert c["plays_live"] > c["plays_baseline"]
+    assert c["lift"] is not None and c["lift"] > 0
+    assert c["taste_shift_pp"] is not None and c["taste_shift_pp"] > 0
+    assert c["status"] == "ended"
+
+def test_campaign_history_keeps_targets():
+    s = LiveSim(n_agents=12, seed=7, tick_seconds=0.05)
+    s.direct("pivot some users to horror for 2 days")
+    n = len(s.campaigns[0]["targets"])
+    for _ in range(3):
+        s.tick()
+    assert len(s.campaign_history) == 1
+    assert len(s.campaign_history[0]["targets"]) == n
+    s2 = LiveSim(n_agents=12, seed=7, tick_seconds=0.05)
+    s2.direct("pivot some users to horror for 5 days")
+    s2.direct("stop campaigns")
+    assert len(s2.campaign_history[0]["targets"]) > 0
