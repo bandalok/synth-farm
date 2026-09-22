@@ -519,8 +519,10 @@ def test_coldstart_home_has_rails_and_why():
     items = [it for r in hs["rails"] for it in r["items"]]
     assert len(items) > 50
     assert all("why_hover" in it for it in items)
-    titles = [it["title"] for r in hs["rails"] for it in r["items"]]
-    assert len(titles) == len(set(titles)) or True  # rails may repeat across rows
+    # repetition across rails is allowed, but never within one rail
+    for r in hs["rails"]:
+        rt = [it["title"] for it in r["items"]]
+        assert len(rt) == len(set(rt))  # no dupes within a rail
     # horror-leaning taste puts horror titles up top
     top_titles = [it["title"] for it in hs["rails"][0]["items"][:5]]
     top_genres = [s.by_id[s.catalog.items[[x.title for x in s.catalog.items].index(t)].item_id].primary_genre
