@@ -622,6 +622,13 @@ function renderAgentPage(a) {
   <h3 class="ap-sec">3 · Taste vector — learned, all Gracenote genres</h3>
   <p class="sub">Every play and search nudges these weights. They always sum to 100%.</p>
   <div class="card">${tasteBars(a.taste)}</div>
+  <h3 class="ap-sec">Home screen right now</h3>
+  <p class="sub">What this viewer actually sees when they open the app —
+  <b>${a.home_screen.rails.length} collections</b>, including any promoted
+  collections from live Master Agent campaigns (look for the Promoted badge).</p>
+  <div class="ap-rails">${a.home_screen.rails.map((r) => `
+    <div class="rail"><h3>${esc(r.title)}${r.why ? ` <span class="why">${esc(r.why)}</span>` : ""}</h3>
+    <div class="tiles">${r.items.map(tileHTML).join("")}</div></div>`).join("")}</div>
   <h3 class="ap-sec">4 · How data is collected</h3>
   <div class="pipe">
     <div class="step"><div class="n">1</div><b>Observe.</b><p>Every impression, click, play and
