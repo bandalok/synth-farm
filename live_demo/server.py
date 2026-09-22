@@ -109,6 +109,18 @@ MASTER_GENRES = {
 }
 
 
+# Master Agent provider-promo vocabulary: everyday words -> app catalog name.
+# Structured as a map so more subscription promotions can be added later.
+# Matched BEFORE the genre scan: promo wording carries no genre keyword and
+# would otherwise read as "unknown".
+PROVIDER_PROMO_KEYWORDS = {
+    "foxone": "FOX One",
+    "fox one": "FOX One",
+    "fox-one": "FOX One",
+    "fox 1": "FOX One",
+}
+
+
 _TMDB_BASE = {
     28: "Action", 12: "Adventure", 16: "Animation", 35: "Comedy",
     80: "Crime", 99: "Documentary", 18: "Drama", 10751: "Family",
@@ -193,16 +205,23 @@ def _load_catalog_30(repo_root: str) -> SimpleNamespace:
     """
     path = os.path.join(repo_root, "data", "catalog_tmdb.json")
     entries = json.load(open(path))["items"]
-    # Exact-500 catalog: drop the 16 weakest fixture entries — anything
-    # posterless first, then the lowest-popularity non-Hindi titles (the
-    # Hindi set is protected for the Bollywood dimension) — to make room
-    # for the 16-title MLB shelf below.
+    # The 16-title MLB shelf below needs room: drop the 16 weakest fixture
+    # entries — anything posterless first, then the lowest-popularity
+    # non-Hindi titles (the Hindi set is protected for the Bollywood
+    # dimension). Titles listed on FOX One are protected too — they back
+    # the FOX One subscription-promotion campaigns.
     drop_ids: set = set()
     for e in entries:
         if not e.get("poster_path"):
             drop_ids.add(e["tmdb_id"])
+
+    def _fox_one_listed(e: dict) -> bool:
+        return any("FOX One" in (p or "")
+                   for p in e.get("providers_flatrate", []))
+
     non_hi = sorted((e for e in entries if e["tmdb_id"] not in drop_ids
-                     and e.get("original_language") != "hi"),
+                     and e.get("original_language") != "hi"
+                     and not _fox_one_listed(e)),
                     key=lambda e: e.get("popularity", 0))
     drop_ids.update(e["tmdb_id"] for e in non_hi[:16 - len(drop_ids)])
     entries = [e for e in entries if e["tmdb_id"] not in drop_ids]
@@ -216,7 +235,7 @@ def _load_catalog_30(repo_root: str) -> SimpleNamespace:
             "popularity": pop, "vote_average": vote, "vote_count": 0,
             "providers_flatrate": [], "synth_tags": list(tags),
         })
-    assert len(entries) == 500, f"catalog must be exactly 500, got {len(entries)}"
+    assert len(entries) >= 700, f"catalog must be at least 700, got {len(entries)}"
     items = []
     for e in entries:
         tags: list[str] = []
@@ -554,7 +573,10 @@ class LiveSim:
                 # campaign genres while the campaign is live.
                 camp_bw = False
                 for camp in self.campaigns:
-                    if pi in camp["targets"] and self._camp_active(camp):
+                    # A paid placement (provider_promo) must NEVER modify
+                    # taste vectors: its vec is None and weight 0.0.
+                    if (pi in camp["targets"] and self._camp_active(camp)
+                            and camp.get("campaign_type") != "provider_promo"):
                         # Campaigns fade slowly and steadily: full strength on
                         # day one, linearly down to zero on the last day.
                         w = camp["weight"] * (camp["days_left"] / camp["days_total"])
@@ -635,10 +657,16 @@ class LiveSim:
                     camp["announced"] = True
                     self.running = False
                     who = f"{len(camp['targets'])} agents"
-                    msg = (f"Master Agent: pivoting {who} toward "
-                           f"{', '.join(camp['genres'])} for "
-                           f"{camp['days_total']} days. "
-                           f"⏸ Sim paused so you can inspect — hit ▶ Play to watch it fade.")
+                    if camp.get("campaign_type") == "provider_promo":
+                        msg = (f"Master Agent: running a {camp['provider']} "
+                               f"subscription promotion for {who} — "
+                               f"{camp['days_total']} days. "
+                               f"⏸ Sim paused so you can inspect — hit ▶ Play to watch it run.")
+                    else:
+                        msg = (f"Master Agent: pivoting {who} toward "
+                               f"{', '.join(camp['genres'])} for "
+                               f"{camp['days_total']} days. "
+                               f"⏸ Sim paused so you can inspect — hit ▶ Play to watch it fade.")
                     self.master_log.append({"day": self.day, "text": msg})
                     self.master_log = self.master_log[-30:]
                     self._master_log_all.append({"day": self.day, "text": msg})
@@ -658,6 +686,9 @@ class LiveSim:
             if c["days_left"] <= 0:
                 self.campaign_history.append({
                     "id": c["id"], "text": c["text"], "genres": c["genres"],
+                    "campaign_type": c.get("campaign_type", "genre_pivot"),
+                    "provider": c.get("provider"),
+                    "titles": sorted(c.get("titles") or []),
                     "n_targets": len(c["targets"]),
                     "targets": sorted(c["targets"]),
                     "created_day": c["created_day"],
@@ -804,6 +835,43 @@ class LiveSim:
                 del self._feed_log[:10000]
             if len(evs) > 400:
                 del evs[:len(evs) - 400]
+            # Subscription-promotion conversion: clicking a promoted title
+            # can turn a targeted non-subscriber into a subscriber. Modest,
+            # deterministic via the sim RNG; a paid placement still never
+            # touches taste (see the gated loops in tick()/home_screen()).
+            for camp in self.campaigns:
+                if (camp.get("campaign_type") != "provider_promo"
+                        or pi not in camp["targets"]
+                        or not self._camp_active(camp)
+                        or item_id not in (camp.get("titles") or ())):
+                    continue
+                provider = camp["provider"]
+                if (provider in p.subscribed_apps
+                        or self.rng.random()
+                        >= 0.12 * max(p.clickiness, 0.2)):
+                    continue
+                p.subscribed_apps = tuple(p.subscribed_apps) + (provider,)
+                aff = getattr(p, "app_affinity", None)
+                if aff is not None and len(aff) == len(p.subscribed_apps) - 1:
+                    # app_affinity is positionally aligned to subscribed_apps:
+                    # the new app enters at mean affinity, then renormalize.
+                    ext = np.append(np.asarray(aff, dtype=float),
+                                    float(np.mean(aff)))
+                    s = float(ext.sum())
+                    p.app_affinity = (ext / s if s > 0
+                                      else np.ones_like(ext) / len(ext))
+                conv = {"day": self.day, "persona_id": persona_id,
+                        "archetype": p.archetype, "type": "conversion",
+                        "item_id": item_id, "title": item.title,
+                        "genre": item.primary_genre,
+                        "campaign_id": camp["id"],
+                        "provider": provider}
+                evs.append(conv)
+                self.events.append(conv)
+                self._watch_log.append(conv)
+                self._feed_log.append(conv)
+                if len(evs) > 400:
+                    del evs[:len(evs) - 400]
             self.watched[persona_id].add(item_id)
             g = self.gidx[item.primary_genre]
             before = float(self.tastes[pi][g])
@@ -865,7 +933,8 @@ class LiveSim:
              "genre": genre_pretty(item.primary_genre),
              "poster": (f"https://image.tmdb.org/t/p/w342{item.poster_path}"
                         if item.poster_path else ""),
-             "providers": list(item.providers)}
+             "providers": list(item.providers),
+             "promoted": False}
         if score is not None:
             d["score"] = round(score, 3)
         return d
@@ -893,7 +962,9 @@ class LiveSim:
         # ranking while the campaign is live.
         rank_taste = taste.copy()
         for camp in self.campaigns:
-            if pi in camp["targets"] and self._camp_active(camp):
+            # Paid placements never steer ranking either (vec is None).
+            if (pi in camp["targets"] and self._camp_active(camp)
+                    and camp.get("campaign_type") != "provider_promo"):
                 w = camp["weight"] * (camp["days_left"] / max(camp["days_total"], 1))
                 rank_taste = (1 - w) * rank_taste + w * camp["vec"]
                 rank_taste = rank_taste / rank_taste.sum()
@@ -1060,7 +1131,8 @@ class LiveSim:
         # this agent, pinned near the top while the campaign runs --
         camp_fade = 0.0
         for camp in self.campaigns:
-            if pi in camp["targets"] and self._camp_active(camp):
+            if (pi in camp["targets"] and self._camp_active(camp)
+                    and camp.get("campaign_type") != "provider_promo"):
                 g = camp["genres"][0]
                 fade = camp["days_left"] / max(camp["days_total"], 1)
                 camp_fade = max(camp_fade, fade)
@@ -1124,6 +1196,39 @@ class LiveSim:
                 if it is not None:
                     d["why_hover"] = self._why_hover(pi, taste, rank_taste, it)
             annotated.append({"title": t, "why": w, "items": items})
+        # -- subscription-promotion rail: a paid placement shown ONLY to
+        # agents targeted by a live provider_promo campaign (conditional, so
+        # the no-campaign home screen is unchanged). Pinned to the campaign's
+        # FOX One titles, unseen first, no within-rail duplicates. Placement
+        # is never 0 or 1 — Continue Watching and the second rail are never
+        # displaced. The slot is random per agent but deterministic per
+        # (agent, day, campaign) via a dedicated RNG, so the sim's own RNG
+        # stream is undisturbed.
+        for camp in self.campaigns:
+            if (camp.get("campaign_type") != "provider_promo"
+                    or pi not in camp["targets"]
+                    or not self._camp_active(camp)):
+                continue
+            pinned = [self.by_id[tid] for tid in camp.get("titles", ())
+                      if tid in self.by_id]
+            if not pinned:
+                continue
+            k_unseen_pop = lambda it: (it.item_id in unseen, it.popularity)
+            items = row(pinned, k_unseen_pop, want=len(pinned))
+            for d in items:
+                d["promoted"] = True
+                it = self.by_id.get(d["id"])
+                if it is not None:
+                    d["why_hover"] = self._why_hover(pi, taste, rank_taste, it)
+            rrng = random.Random(f"{pi}-{self.day}-{camp['id']}")
+            annotated.insert(rrng.randint(2, len(annotated)),
+                             {"key": "provider_promo",
+                              "title": "Trending on FoxOne",
+                              "why": (f"promoted — the Master Agent is running "
+                                      f"a {camp['provider']} subscription "
+                                      f"push ({camp['days_left']} days left)"),
+                              "items": items})
+            camp["impressions"].add((pi, self.day))
         return {"rails": annotated}
 
     # -- cold start ---------------------------------------------------------------
@@ -1367,12 +1472,21 @@ class LiveSim:
         if re.search(r"\b(stop|cancel|end|kill)\b", t) and "campaign" in t or \
            re.search(r"\b(stop|cancel|end)\s+(all\s+)?campaigns?\b", t):
             return {"action": "stop"}
+        # Subscription-promotion directives ("run a FoxOne promotion to those
+        # who don't have it"): matched before the genre scan, since promo
+        # wording carries no genre keyword and would return "unknown".
+        promo_app = None
+        for kw, app in PROVIDER_PROMO_KEYWORDS.items():
+            if re.search(r"\b" + re.escape(kw) + r"\b", t):
+                promo_app = app
+                break
         genres: list[str] = []
-        for kw, g in MASTER_GENRES.items():
-            if re.search(r"\b" + re.escape(kw) + r"\b", t) and g not in genres:
-                genres.append(g)
-        if not genres:
-            return {"action": "unknown"}
+        if promo_app is None:
+            for kw, g in MASTER_GENRES.items():
+                if re.search(r"\b" + re.escape(kw) + r"\b", t) and g not in genres:
+                    genres.append(g)
+            if not genres:
+                return {"action": "unknown"}
         m = re.search(r"(\d+)\s*%", t)
         cm = re.search(r"cluster\s*#?\s*(\d+)", t)
         dm = re.search(r"(\d+)\s*days?", t)
@@ -1405,6 +1519,14 @@ class LiveSim:
         elif sm3:
             start_day = int(sm3.group(1))
         start_day = max(start_day, self.day)  # past start = fire now
+        if promo_app is not None:
+            # Provider promo: reuse the coverage/cluster/days/scheduling
+            # parsing above. No genre pivot — a paid placement never steers
+            # taste, so genres stays empty and vec/weight stay neutral.
+            return {"action": "start", "campaign_type": "provider_promo",
+                    "provider": promo_app, "genres": [],
+                    "coverage": coverage, "cluster": cluster,
+                    "days": days, "start_day": start_day}
         return {"action": "start", "genres": genres, "coverage": coverage,
                 "cluster": cluster, "days": days, "start_day": start_day}
 
@@ -1414,6 +1536,9 @@ class LiveSim:
 
     def _campaigns_json(self) -> list[dict]:
         return [{"id": c["id"], "text": c["text"], "genres": c["genres"],
+                 "campaign_type": c.get("campaign_type", "genre_pivot"),
+                 "provider": c.get("provider"),
+                 "titles": sorted(c.get("titles") or ()),
                  "n_targets": len(c["targets"]), "targets": sorted(c["targets"]),
                  "weight": c["weight"],
                  "days_left": c["days_left"], "days_total": c["days_total"],
@@ -1442,6 +1567,56 @@ class LiveSim:
             return None
         return round(100 * (after - before), 2)
 
+    def _promo_analytics(self, c: dict, src: str) -> dict:
+        """Closed-loop metrics for a subscription-promotion campaign: promo
+        rail impressions, clicks on the pinned titles, and subscription
+        conversions — counted from the sim's own event log over the live
+        window. Genre plays/lift/taste-shift are meaningless for a paid
+        placement and stay null/zero."""
+        targets = [i for i in (c.get("targets") or [])
+                   if 0 <= i < len(self.personas)]
+        titles = set(c.get("titles") or ())
+        days_total = max(int(c.get("days_total") or 1), 1)
+        start = int(c.get("start_day", c.get("created_day", 0)))
+        # tick() stamps events with day+1, so the live window in event-day
+        # terms starts one day after start_day — same convention as the genre
+        # branch.
+        win_start = start + 1
+        win_end = min(self.day, start + days_total)
+        win_days = set(range(win_start, win_end + 1)) if win_end >= win_start else set()
+        # impressions: unique (agent, day) rail views inside the window
+        impressions = sum(1 for (_i, d) in (c.get("impressions") or set())
+                          if d in win_days)
+        clicks = conversions = 0
+        for i in targets:
+            pid = self.personas[i].persona_id
+            for e in self.agent_events.get(pid, []):
+                if not (win_start <= e.get("day", 0) <= win_end):
+                    continue
+                t = e.get("type")
+                if t == "click" and e.get("item_id") in titles:
+                    clicks += 1
+                elif (t == "conversion"
+                      and e.get("campaign_id") == c.get("id")):
+                    conversions += 1
+        if src == "live":
+            status = "live" if self._camp_active(c) else "scheduled"
+        else:
+            status = "ended"
+        return {
+            "id": c.get("id"), "text": c.get("text", ""),
+            "campaign_type": "provider_promo", "provider": c.get("provider"),
+            "genres": [], "status": status,
+            "n_targets": len(targets),
+            "days_total": days_total, "start_day": start,
+            "plays_live": 0, "plays_baseline": 0,
+            "lift": None, "taste_shift_pp": None,
+            "impressions": impressions, "clicks": clicks,
+            "conversions": conversions,
+            "conversion_rate": (round(conversions / impressions, 4)
+                                if impressions else None),
+        }
+
     def campaign_analytics(self) -> list[dict]:
         """Closed-loop campaign metrics from the sim's own event log: plays
         in the campaign genres during the live window vs. the equal-length
@@ -1450,6 +1625,9 @@ class LiveSim:
         out = []
         for src, cs in (("live", self.campaigns), ("ended", self.campaign_history)):
             for c in cs:
+                if c.get("campaign_type") == "provider_promo":
+                    out.append(self._promo_analytics(c, src))
+                    continue
                 targets = [i for i in (c.get("targets") or [])
                            if 0 <= i < len(self.personas)]
                 genres = list(c.get("genres") or [])
@@ -1505,6 +1683,9 @@ class LiveSim:
             for c in self.campaigns:
                 self.campaign_history.append({
                     "id": c["id"], "text": c["text"], "genres": c["genres"],
+                    "campaign_type": c.get("campaign_type", "genre_pivot"),
+                    "provider": c.get("provider"),
+                    "titles": sorted(c.get("titles") or []),
                     "n_targets": len(c["targets"]),
                     "targets": sorted(c["targets"]),
                     "created_day": c["created_day"],
@@ -1518,28 +1699,73 @@ class LiveSim:
                    "football for 7 days” or “stop campaigns”.")
         else:
             self._camp_seq += 1
-            if parsed["cluster"] is not None:
-                targets = {i for i in range(self.n_agents)
-                           if int(self.labels[i]) == parsed["cluster"]}
+            promo = parsed.get("campaign_type") == "provider_promo"
+            if promo:
+                # Subscription promotion: acquisition targeting — only agents
+                # that don't already subscribe. Conversions mutate
+                # subscribed_apps, so converted agents become ineligible for
+                # later promo runs automatically. Zero eligible: the campaign
+                # still goes live with empty targets (analytics handles it).
+                provider = parsed["provider"]
+                eligible = [i for i, p in enumerate(self.personas)
+                            if provider not in p.subscribed_apps]
+                if parsed["cluster"] is not None:
+                    targets = {i for i in eligible
+                               if int(self.labels[i]) == parsed["cluster"]}
+                elif eligible:
+                    k = max(1, int(parsed["coverage"] * len(eligible)))
+                    targets = set(self.rng.choice(
+                        eligible, min(k, len(eligible)),
+                        replace=False).tolist())
+                else:
+                    targets = set()
+                # Pinned titles: catalog items streaming on the provider,
+                # resolved through the real provider->app mapping (NOT the
+                # mock hash pool). A paid placement never steers taste:
+                # vec None, weight 0.0.
+                titles = {it.item_id for it in self.catalog.items
+                          if provider in it.providers}
+                camp = {"id": self._camp_seq, "text": text,
+                        "campaign_type": "provider_promo",
+                        "provider": provider,
+                        "genres": [], "targets": targets,
+                        "titles": titles, "impressions": set(),
+                        "vec": None, "weight": 0.0,
+                        "days_left": parsed["days"],
+                        "days_total": parsed["days"],
+                        "created_day": self.day,
+                        "start_day": parsed["start_day"]}
             else:
-                k = max(1, int(parsed["coverage"] * self.n_agents))
-                targets = set(self.rng.choice(
-                    self.n_agents, k, replace=False).tolist())
-            vec = np.zeros(len(self.genres))
-            for g in parsed["genres"]:
-                vec[self.gidx[g]] = 1.0 / len(parsed["genres"])
-            camp = {"id": self._camp_seq, "text": text,
-                    "genres": parsed["genres"], "targets": targets,
-                    "vec": vec, "weight": 0.45,
-                    "days_left": parsed["days"], "days_total": parsed["days"],
-                    "created_day": self.day, "start_day": parsed["start_day"]}
+                if parsed["cluster"] is not None:
+                    targets = {i for i in range(self.n_agents)
+                               if int(self.labels[i]) == parsed["cluster"]}
+                else:
+                    k = max(1, int(parsed["coverage"] * self.n_agents))
+                    targets = set(self.rng.choice(
+                        self.n_agents, k, replace=False).tolist())
+                vec = np.zeros(len(self.genres))
+                for g in parsed["genres"]:
+                    vec[self.gidx[g]] = 1.0 / len(parsed["genres"])
+                camp = {"id": self._camp_seq, "text": text,
+                        "genres": parsed["genres"], "targets": targets,
+                        "vec": vec, "weight": 0.45,
+                        "days_left": parsed["days"],
+                        "days_total": parsed["days"],
+                        "created_day": self.day,
+                        "start_day": parsed["start_day"]}
             self.campaigns.append(camp)
             who = (f"cluster {parsed['cluster']}" if parsed["cluster"] is not None
                    else f"{len(targets)} agents")
             if parsed["start_day"] <= self.day:
-                msg = (f"Master Agent: pivoting {who} toward "
-                       f"{', '.join(parsed['genres'])} for {parsed['days']} days. "
-                       f"⏸ Sim paused so you can inspect — hit ▶ Play to watch it fade.")
+                if promo:
+                    msg = (f"Master Agent: running a {parsed['provider']} "
+                           f"subscription promotion for {who} — "
+                           f"{parsed['days']} days. "
+                           f"⏸ Sim paused so you can inspect — hit ▶ Play to watch it run.")
+                else:
+                    msg = (f"Master Agent: pivoting {who} toward "
+                           f"{', '.join(parsed['genres'])} for {parsed['days']} days. "
+                           f"⏸ Sim paused so you can inspect — hit ▶ Play to watch it fade.")
                 camp["announced"] = True
                 # Freeze the sim the moment a campaign goes live: at the
                 # default tick a 7-day campaign evaporates in ~11 real seconds,
@@ -1547,11 +1773,17 @@ class LiveSim:
                 self.running = False
             else:
                 end = parsed["start_day"] + parsed["days"] - 1
-                glabels = [("Baseball" if g == "Sports" else genre_pretty(g))
-                           for g in parsed["genres"]]
-                msg = (f"Master Agent: scheduled {', '.join(glabels)} "
-                       f"for {who} — days {parsed['start_day']}–{end}. "
-                       f"Nothing changes on screen until day {parsed['start_day']}.")
+                if promo:
+                    msg = (f"Master Agent: scheduled a {parsed['provider']} "
+                           f"subscription promotion for {who} — days "
+                           f"{parsed['start_day']}–{end}. "
+                           f"Nothing changes on screen until day {parsed['start_day']}.")
+                else:
+                    glabels = [("Baseball" if g == "Sports" else genre_pretty(g))
+                               for g in parsed["genres"]]
+                    msg = (f"Master Agent: scheduled {', '.join(glabels)} "
+                           f"for {who} — days {parsed['start_day']}–{end}. "
+                           f"Nothing changes on screen until day {parsed['start_day']}.")
                 camp["announced"] = False
         self.master_log.append({"day": self.day, "text": msg})
         self.master_log = self.master_log[-30:]

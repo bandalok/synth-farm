@@ -34,19 +34,21 @@ APPS: tuple[str, ...] = (
     "Paramount+",
     "Tubi",
     "Plex",
+    "FOX One",  # appended LAST (Sep 2026) — new draws must not disturb seeded ones
 )
 
 APP_POPULARITY: tuple[float, ...] = (
-    0.225,  # Netflix
-    0.15,   # Disney+
-    0.13,   # HBO Max
-    0.12,   # Hulu
-    0.12,   # Prime Video
-    0.075,  # Apple TV+
-    0.065,  # Peacock
-    0.045,  # Paramount+
-    0.04,   # Tubi (free, ad-supported — added Sep 2026 for the real catalog)
-    0.03,   # Plex (free tier + personal media — added Sep 2026)
+    0.21375,  # Netflix (0.225 * 0.95)
+    0.1425,   # Disney+ (0.15 * 0.95)
+    0.1235,   # HBO Max (0.13 * 0.95)
+    0.114,    # Hulu (0.12 * 0.95)
+    0.114,    # Prime Video (0.12 * 0.95)
+    0.07125,  # Apple TV+ (0.075 * 0.95)
+    0.06175,  # Peacock (0.065 * 0.95)
+    0.04275,  # Paramount+ (0.045 * 0.95)
+    0.038,    # Tubi (0.04 * 0.95 — free, ad-supported — added Sep 2026)
+    0.0285,   # Plex (0.03 * 0.95 — free tier + personal media — added Sep 2026)
+    0.05,     # FOX One (0.05*3 = 15% penetration — added LAST Sep 2026)
 )
 
 #: Dirichlet concentration for the affinity vector. >1 keeps every

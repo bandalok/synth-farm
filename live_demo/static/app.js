@@ -181,9 +181,12 @@ function renderCampaigns(cs) {
   $("campaigns").innerHTML = cs.length ? cs.map((c) => {
     const strength = Math.round(100 * c.days_left / Math.max(c.days_total, 1));
     const sched = c.status === "scheduled";
+    /* provider-promo campaigns carry no genres: label by the provider */
+    const label = (c.genres && c.genres.length)
+      ? c.genres.map(campLabel).join(" + ") : (c.provider || "");
     return `
     <div class="card" style="border-top:3px solid ${sched ? "var(--teal)" : "var(--amber)"}">
-      <h3>${esc(c.genres.map(campLabel).join(" + "))}${sched ? " <span class='pin'>📅 scheduled</span>" : ""}</h3>
+      <h3>${esc(label)}${sched ? " <span class='pin'>📅 scheduled</span>" : ""}</h3>
       <div class="meta">${c.n_targets} agents · ${sched ? `<b>starts day ${c.start_day}</b>` : `<b>${c.days_left}</b> days left`}</div>
       <div class="bar-row" style="margin-top:8px"><div class="bar"><div class="fill" style="width:${strength}%;background:${sched ? "var(--teal)" : "var(--amber)"}"></div></div><div class="val">${strength}%</div></div>
       <div class="meta" style="opacity:.7">“${esc(c.text)}”</div>
@@ -659,6 +662,7 @@ function tileHTML(t) {
     : ` title="${esc(t.title)}"`;
   return `<div class="tile" data-id="${t.id}"${why}>
     ${t.sponsored ? `<span class="spon-badge">Sponsored</span>` : ""}
+    ${t.promoted ? `<span class="promo-badge">Promoted</span>` : ""}
     ${art}
     <div class="ti"><b>${esc(t.title)}</b><span>${esc(t.genre)}</span>
     ${prov ? `<span class="prov">${esc(prov)}</span>` : ""}</div></div>`;

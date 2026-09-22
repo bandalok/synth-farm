@@ -105,6 +105,8 @@ PROVIDER_APP_MAP: dict[str, str] = {
     "Paramount+ Roku Premium Channel": "Paramount+",
     "Tubi TV": "Tubi",
     "Plex": "Plex",
+    "FOX One": "FOX One",
+    "FOX One Amazon Channel": "FOX One",
 }
 
 #: Estimated runtimes. The fixture carries no runtimes, and the session

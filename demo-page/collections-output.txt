@@ -1,0 +1,144 @@
+=== synth-farm collections ===
+config: 500 personas x 7 days, seed=7, catalog=real
+catalog: 117 real TMDb titles across 12 genres
+[farm] 10,000 events emitted…
+[farm] 59,707 events from 2,056 sessions in 4.2s
+59,707 events
+
+##### Binge Watchers — home screen #####
+== Top picks for Binge Watchers ==
+  1. Against the Current (drama)
+  2. South Park (animation)
+  3. The Simpsons (animation)
+  4. Detective Conan (animation)
+  5. Made in Korea (crime)
+  6. MobLand (crime)
+== Trending now ==
+  1. The Scandal (drama)
+  2. Reacher (action)
+  3. Lioness (drama)
+  4. Spider-Man: Brand New Day (scifi)
+  5. The End of Oak Street (scifi)
+  6. Lion Fist (action)
+== Continue watching ==
+  1. Lion Fist (action)
+  2. Ted Lasso (drama)
+  3. City of Blood (thriller)
+  4. Outlander: Blood of My Blood (drama)
+  5. South Park (animation)
+  6. The Hunger Games: Sunrise on the Reaping (scifi)
+
+##### Genre Loyalists — home screen #####
+== Top picks for Genre Loyalists ==
+  1. Evil Dead Burn (horror)
+  2. Other Mommy (horror)
+  3. Bodycam (horror)
+  4. Sultana (drama)
+  5. Band of Brothers: Legacy (documentary)
+  6. Lioness (drama)
+== Trending now ==
+  1. The Scandal (drama)
+  2. Reacher (action)
+  3. Lioness (drama)
+  4. Spider-Man: Brand New Day (scifi)
+  5. The End of Oak Street (scifi)
+  6. Lion Fist (action)
+== Continue watching ==
+  1. The Scandal (drama)
+  2. South Park (animation)
+  3. Scary Movie (comedy)
+  4. The End of Oak Street (scifi)
+  5. Reacher (action)
+  6. The Drop: A Snowfall Saga (drama)
+
+##### Explorers — home screen #####
+== Top picks for Explorers ==
+  1. Reacher (action)
+  2. Made in Korea (crime)
+  3. MobLand (crime)
+  4. Monster: The Lizzie Borden Story (drama)
+  5. Route 187 (crime)
+  6. The Fixers (action)
+== Trending now ==
+  1. The Scandal (drama)
+  2. Reacher (action)
+  3. Lioness (drama)
+  4. Spider-Man: Brand New Day (scifi)
+  5. The End of Oak Street (scifi)
+  6. Lion Fist (action)
+== Continue watching ==
+  1. The End of Oak Street (scifi)
+  2. Reacher (action)
+  3. Lioness (drama)
+  4. You+Me – Against the World (romance)
+  5. Toy Story 5 (animation)
+  6. Lion Fist (action)
+
+##### Casual Viewers — home screen #####
+== Top picks for Casual Viewers ==
+  1. Reacher (action)
+  2. Made in Korea (crime)
+  3. MobLand (crime)
+  4. Monster: The Lizzie Borden Story (drama)
+  5. Route 187 (crime)
+  6. The Odyssey (action)
+== Trending now ==
+  1. The Scandal (drama)
+  2. Reacher (action)
+  3. Lioness (drama)
+  4. Spider-Man: Brand New Day (scifi)
+  5. The End of Oak Street (scifi)
+  6. Lion Fist (action)
+== Continue watching ==
+  1. Spider-Man: Brand New Day (scifi)
+  2. The Scandal (drama)
+  3. Reacher (action)
+  4. The Odyssey (action)
+  5. The Runner (thriller)
+  6. Crew Girl (drama)
+
+##### Critics — home screen #####
+== Top picks for Critics ==
+  1. Sultana (drama)
+  2. Band of Brothers: Legacy (documentary)
+  3. Physical 100: Italy (reality)
+  4. The Grand Tour (reality)
+  5. Nimrods (comedy)
+  6. Lioness (drama)
+== Trending now ==
+  1. The Scandal (drama)
+  2. Reacher (action)
+  3. Lioness (drama)
+  4. Spider-Man: Brand New Day (scifi)
+  5. The End of Oak Street (scifi)
+  6. Lion Fist (action)
+== Continue watching ==
+  1. The Scandal (drama)
+  2. Coyote vs. Acme (comedy)
+  3. Stuart Fails to Save the Universe (comedy)
+  4. Spider-Man: Brand New Day (scifi)
+
+##### Channel Surfers — home screen #####
+== Top picks for Channel Surfers ==
+  1. Made in Korea (crime)
+  2. MobLand (crime)
+  3. Monster: The Lizzie Borden Story (drama)
+  4. Route 187 (crime)
+  5. The Gentlemen (comedy)
+  6. The Rivals of Amziah King (thriller)
+== Trending now ==
+  1. The Scandal (drama)
+  2. Reacher (action)
+  3. Lioness (drama)
+  4. Spider-Man: Brand New Day (scifi)
+  5. The End of Oak Street (scifi)
+  6. Lion Fist (action)
+== Continue watching ==
+  1. Crew Girl (drama)
+  2. Lioness (drama)
+  3. The Scandal (drama)
+  4. The Early Spring (drama)
+  5. Spider-Man: Brand New Day (scifi)
+  6. The Hunger Games: Sunrise on the Reaping (scifi)
+
+Collections complete. Every title above is a real TMDb title; viewers and events are synthetic.

@@ -1,0 +1,28 @@
+=== synth-farm run ===
+config: 500 personas x 7 days, seed=7
+Persona population:
+  binge_watcher    19.8%  — Heavy viewer. Browses rails, commits to full watches.
+  genre_loyalist   20.6%  — One genre owns 60%+ of their attention. Predictable, valuable.
+  explorer         16.8%  — Searches constantly, tries everything, commits to little.
+  casual           23.2%  — The median user. Shows up weekly, watches one thing.
+  critic            9.0%  — Picky. Low CTR, high abandon. Your hardest eval slice.
+  channel_surfer   10.6%  — Clicks every tile, watches 10 minutes, moves on. Noisy signal.
+  mean sessions/week: 4.02 (median 3)
+[farm] 20,000 events emitted…
+[farm] 60,000 events emitted…
+[farm] 64,808 events from 2,056 sessions in 19.3s
+Farm run complete:
+  personas : 500
+  sessions : 2056
+  events   : 64808 (3,358/s)
+  elapsed  : 19.3s
+  by type  :
+    abandon       1,107
+    app_launch    2,056
+    click         1,531
+    complete        424
+    impression   54,456
+    play          1,531
+    quartile      1,974
+    search        1,729
+events written to: events.jsonl

@@ -19,7 +19,7 @@ from synth_farm.personas import generate_personas
 
 
 def test_apps_catalog_has_popularity_weights():
-    assert len(APPS) == len(APP_POPULARITY) == 10
+    assert len(APPS) == len(APP_POPULARITY) == 11
     assert abs(sum(APP_POPULARITY) - 1.0) < 1e-9
     assert all(p > 0 for p in APP_POPULARITY)
     assert "Netflix" in APPS and "Disney+" in APPS and "HBO Max" in APPS
