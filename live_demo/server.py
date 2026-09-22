@@ -659,6 +659,7 @@ class LiveSim:
                 self.campaign_history.append({
                     "id": c["id"], "text": c["text"], "genres": c["genres"],
                     "n_targets": len(c["targets"]),
+                    "targets": sorted(c["targets"]),
                     "created_day": c["created_day"],
                     "days_total": c["days_total"], "ended_day": self.day,
                     "live": False})
@@ -1116,8 +1117,98 @@ class LiveSim:
         ordered = sorted(enumerate(rails),
                          key=lambda pk: (0 if pk[1][0] == "continue" else 1,
                                          -scores.get(pk[1][0], 0.5), pk[0]))
-        return {"rails": [{"title": t, "why": w, "items": items}
-                          for _, (key, t, w, items) in ordered]}
+        annotated = []
+        for _, (key, t, w, items) in ordered:
+            for d in items:
+                it = self.by_id.get(d["id"])
+                if it is not None:
+                    d["why_hover"] = self._why_hover(pi, taste, rank_taste, it)
+            annotated.append({"title": t, "why": w, "items": items})
+        return {"rails": annotated}
+
+    # -- cold start ---------------------------------------------------------------
+    def coldstart_taste(self, picks: list[str]) -> np.ndarray:
+        """Bootstrapped taste vector from quiz answers. Zero watch history —
+        the cold-start solve: 3 answers stand in for months of viewing data.
+        Unknown genre keys are ignored, never fatal."""
+        w = np.full(len(self.genres), 0.02)
+        for i, g in enumerate(picks[:3]):
+            if g in self.gidx:
+                w[self.gidx[g]] += (0.50, 0.30, 0.20)[min(i, 2)]
+        return w / w.sum()
+
+    def coldstart_home(self, taste: np.ndarray, n: int = 20) -> dict:
+        """Home screen for a brand-new viewer: quiz-derived taste, empty
+        history, no campaign targeting. Mirrors the real home screen's rails
+        so the bootstrap is directly comparable."""
+        ranked = [(it, s) for it, s in score_titles(taste, self.catalog)]
+        score_of = {it.item_id: float(s) for it, s in ranked}
+
+        def j(items: list) -> list:
+            return [self._item_json(it) for it in items]
+
+        def row(pool_items: list, key, reverse: bool = True,
+                want: int = n) -> list:
+            picked: list = []
+            seen_ids: set = set()
+            for it in sorted(pool_items, key=key, reverse=reverse):
+                if it.item_id not in seen_ids:
+                    seen_ids.add(it.item_id)
+                    picked.append(it)
+                if len(picked) >= want:
+                    break
+            return [self._item_json(x) for x in picked]
+
+        k_taste = lambda it: score_of.get(it.item_id, 0.0)
+        k_pop = lambda it: it.popularity
+        k_vote = lambda it: it.vote_average
+        k_new = lambda it: it.release_date or ""
+        k_trend = lambda it: (float(self.genre_plays[self.gidx[it.primary_genre]]),
+                              it.popularity)
+
+        def pool(genre: str) -> list:
+            return self.by_tag.get(genre, [])
+
+        order = np.argsort(taste)[::-1]
+        g1 = self.genres[order[0]]
+        trending_idx = np.argsort(self.genre_plays)[::-1][:3]
+        trending_genres = {self.genres[i] for i in trending_idx
+                           if self.genre_plays[i] > 0}
+        tr_pool = [it for it, _ in ranked if it.primary_genre in trending_genres]
+        if tr_pool:
+            tr_key = k_trend
+        else:
+            tr_pool = [it for it, _ in ranked]
+            tr_key = lambda it: k_taste(it) * it.popularity
+        new_cands = [it for it in self.catalog.items
+                     if it.release_date >= "2026-08-01"]
+        hidden_pool = sorted(self.catalog.items, key=k_pop)[:len(self.catalog.items) // 2]
+
+        rails = [
+            ("Personalized for you",
+             "ranked live against the quiz-bootstrapped taste vector — 0 watch history",
+             [self._item_json(it, s) for it, s in ranked[:n]]),
+            (f"Because of your interest in {genre_pretty(g1)}", "",
+             row(pool(g1), k_vote)),
+            ("Trending now", "what the whole simulation is watching today",
+             row(tr_pool, tr_key)),
+            ("Popular right now", "highest TMDb popularity today",
+             row(self.catalog.items, k_pop)),
+            ("New this month", "released in the last 60 days",
+             row(new_cands, k_new)),
+            ("Hidden gems for you", "high taste match, low popularity",
+             row(hidden_pool, k_vote)),
+            ("Critics' picks", "highest rated of all time",
+             row(self.catalog.items, k_vote)),
+        ]
+        out = []
+        for t, why, items in rails:
+            for d in items:
+                it = self.by_id.get(d["id"])
+                if it is not None:
+                    d["why_hover"] = self._why_hover(None, taste, taste, it)
+            out.append({"title": t, "why": why, "items": items})
+        return {"rails": out}
 
     def explain(self, persona_id: str, item_id: str) -> dict:
         """Why was this title recommended? Concrete signals, no hand-waving."""
@@ -1189,6 +1280,32 @@ class LiveSim:
         d = self._item_json(it)
         d["signals"] = signals[:8]
         return d
+
+    def _why_hover(self, pi: int | None, taste, rank_taste, item) -> str:
+        """One compact hover explanation per tile: taste match %, any live
+        Master Agent boost, and today's trending velocity. Purely additive
+        display data — never changes ranking."""
+        vec = np.asarray(item.genre_vector, dtype=float)
+        lines = ["Why this?",
+                 f"Taste match {100 * float(np.dot(taste, vec)):.0f}%"]
+        if pi is not None:
+            for camp in self.campaigns:
+                if pi in camp["targets"] and self._camp_active(camp) and any(
+                        vec[self.gidx[g]] > 0.25 for g in camp["genres"]):
+                    base = float(np.dot(taste, vec))
+                    boosted = float(np.dot(rank_taste, vec))
+                    lift = (boosted - base) / base if base > 1e-9 else 0.0
+                    glabel = ("Baseball" if camp["genres"][0] == "Sports"
+                              else genre_pretty(camp["genres"][0]))
+                    lines.append(f"Master Agent boost +{lift:.0%} ({glabel} push)")
+                    break
+        gi = self.gidx[item.primary_genre]
+        plays = float(self.genre_plays[gi])
+        if plays > 0:
+            rank = int((self.genre_plays > plays).sum()) + 1
+            if rank <= 5:
+                lines.append(f"Trending #{rank} today ({int(plays)} plays)")
+        return "\n".join(lines)
 
     def search(self, q: str, persona_id: str | None = None, n: int = 12) -> list[dict]:
         ql = q.lower().strip()
@@ -1304,6 +1421,82 @@ class LiveSim:
                  "status": "live" if self._camp_active(c) else "scheduled"}
                 for c in self.campaigns]
 
+    def _campaign_taste_shift(self, targets: list[int], genres: list[str],
+                              base_end: int, win_end: int) -> float | None:
+        """Average taste-weight change (percentage points) on the campaign
+        genres between the baseline and the live window, read from the
+        stored daily taste snapshots."""
+        gi = [self.gidx[g] for g in genres if g in self.gidx]
+        if not targets or not gi:
+            return None
+
+        def avg_at(day: int) -> float | None:
+            snaps = [(d, t) for d, t in self._all_paths if d <= day]
+            if not snaps:
+                return None
+            t = snaps[-1][1]
+            return float(t[targets][:, gi].sum(axis=1).mean())
+
+        before, after = avg_at(base_end), avg_at(win_end)
+        if before is None or after is None:
+            return None
+        return round(100 * (after - before), 2)
+
+    def campaign_analytics(self) -> list[dict]:
+        """Closed-loop campaign metrics from the sim's own event log: plays
+        in the campaign genres during the live window vs. the equal-length
+        baseline before it, taste shift of the targets on those genres, and
+        clicks. Covers live, scheduled, and ended campaigns."""
+        out = []
+        for src, cs in (("live", self.campaigns), ("ended", self.campaign_history)):
+            for c in cs:
+                targets = [i for i in (c.get("targets") or [])
+                           if 0 <= i < len(self.personas)]
+                genres = list(c.get("genres") or [])
+                gset = set(genres)
+                days_total = max(int(c.get("days_total") or 1), 1)
+                start = int(c.get("start_day", c.get("created_day", 0)))
+                # tick() stamps events with day+1, so the live window in
+                # event-day terms starts one day after start_day.
+                win_start = start + 1
+                win_end = min(self.day, start + days_total)
+                base_start, base_end = win_start - days_total, win_start - 1
+                live_plays = base_plays = clicks = 0
+                if targets and gset and win_end >= win_start:
+                    for i in targets:
+                        pid = self.personas[i].persona_id
+                        for e in self.agent_events.get(pid, []):
+                            if e.get("genre") not in gset:
+                                continue
+                            d = e.get("day", 0)
+                            t = e.get("type")
+                            if t == "play":
+                                if win_start <= d <= win_end:
+                                    live_plays += 1
+                                elif base_start <= d <= base_end:
+                                    base_plays += 1
+                            elif t == "click" and win_start <= d <= win_end:
+                                clicks += 1
+                lift = ((live_plays - base_plays) / base_plays
+                        if base_plays > 0 else None)
+                if src == "live":
+                    status = ("live" if self._camp_active(c)
+                              else "scheduled")
+                else:
+                    status = "ended"
+                out.append({
+                    "id": c.get("id"), "text": c.get("text", ""),
+                    "genres": genres, "status": status,
+                    "n_targets": len(targets),
+                    "days_total": days_total, "start_day": start,
+                    "plays_live": live_plays, "plays_baseline": base_plays,
+                    "lift": round(lift, 3) if lift is not None else None,
+                    "taste_shift_pp": self._campaign_taste_shift(
+                        targets, genres, base_end, win_end),
+                    "clicks": clicks,
+                })
+        return out
+
     def direct(self, text: str) -> dict:
         """The manager agent: turn a plain-English directive into a campaign."""
         self._truncate_future()  # a new directive starts a new timeline branch
@@ -1313,6 +1506,7 @@ class LiveSim:
                 self.campaign_history.append({
                     "id": c["id"], "text": c["text"], "genres": c["genres"],
                     "n_targets": len(c["targets"]),
+                    "targets": sorted(c["targets"]),
                     "created_day": c["created_day"],
                     "days_total": c["days_total"], "ended_day": self.day,
                     "live": False})
@@ -1519,6 +1713,9 @@ class Handler(BaseHTTPRequestHandler):
                 iid = qs.get("item", [None])[0]
                 with sim.lock:
                     return self._json(sim.explain(pid, iid))
+            if route == "/api/campaign_analytics":
+                with sim.lock:
+                    return self._json({"analytics": sim.campaign_analytics()})
             if route == "/api/stream":
                 return self._sse()
             self.send_error(404)
@@ -1541,6 +1738,22 @@ class Handler(BaseHTTPRequestHandler):
                 text = data.get("text", "")
                 with sim.lock:
                     return self._json(sim.direct(text))
+            if url.path == "/api/coldstart":
+                picks = data.get("picks", [])
+                picks = [p for p in picks if isinstance(p, str)][:3]
+                with sim.lock:
+                    taste = sim.coldstart_taste(picks)
+                    top = sorted(
+                        ((g, round(float(w), 4))
+                         for g, w in zip(sim.genres, taste)),
+                        key=lambda gv: -gv[1])[:5]
+                    return self._json({
+                        "picks": picks,
+                        "taste": {g: round(float(w), 4)
+                                  for g, w in zip(sim.genres, taste)},
+                        "top_genres": [g for g, _ in top],
+                        "home_screen": sim.coldstart_home(taste),
+                    })
             if url.path == "/api/control":
                 action = data.get("action")
                 with sim.lock:
