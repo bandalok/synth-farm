@@ -183,7 +183,7 @@ function renderCampaigns(cs) {
     const sched = c.status === "scheduled";
     return `
     <div class="card" style="border-top:3px solid ${sched ? "var(--teal)" : "var(--amber)"}">
-      <h3>🎭 ${esc(c.genres.map(campLabel).join(" + "))}${sched ? " <span class='pin'>📅 scheduled</span>" : ""}</h3>
+      <h3>${esc(c.genres.map(campLabel).join(" + "))}${sched ? " <span class='pin'>📅 scheduled</span>" : ""}</h3>
       <div class="meta">${c.n_targets} agents · ${sched ? `<b>starts day ${c.start_day}</b>` : `<b>${c.days_left}</b> days left`}</div>
       <div class="bar-row" style="margin-top:8px"><div class="bar"><div class="fill" style="width:${strength}%;background:${sched ? "var(--teal)" : "var(--amber)"}"></div></div><div class="val">${strength}%</div></div>
       <div class="meta" style="opacity:.7">“${esc(c.text)}”</div>
@@ -314,7 +314,6 @@ function showMasterBlast(day, text, nTargets) {
     ctx.fillStyle = "#f2b544";
     ctx.beginPath(); ctx.arc(mx, my, 11, 0, 7); ctx.fill();
     ctx.fillStyle = "#111"; ctx.font = "11px sans-serif"; ctx.textAlign = "center";
-    ctx.fillText("🎭", mx, my + 4);
     // strings
     ctx.strokeStyle = "rgba(242,181,68,.18)"; ctx.lineWidth = 1;
     ctx.beginPath();
@@ -457,14 +456,15 @@ function drawMasterPanel() {
   ctx.fillStyle = "#f5b45a";
   ctx.beginPath(); ctx.arc(mx, my, 9, 0, 7); ctx.fill();
   ctx.fillStyle = "#111"; ctx.font = "10px sans-serif"; ctx.textAlign = "center";
-  ctx.fillText("🎭", mx, my + 3.5);
   ctx.fillStyle = "#f5b45a"; ctx.font = "11px sans-serif"; ctx.textAlign = "left";
   ctx.fillText("MASTER AGENT", mx + 15, my + 4);
   // energy pulses: fresh campaign targets get hit with light down their strings
   const et = performance.now() - masterEnergyStart;
   if (et >= 0 && et < 3000 && lastDirectedTargets.length) {
-    const tlist = lastDirectedTargets.slice(0, 60);
-    const stagger = Math.min(60, 1800 / tlist.length);
+    const tlist = lastDirectedTargets;
+    // total stagger spread stays under ~2s so every pulse lands within the
+    // 3s energy window, no matter how many agents a campaign targets
+    const stagger = Math.max(4, Math.min(60, 1800 / Math.max(tlist.length, 1)));
     tlist.forEach((pi, k) => {
       if (pi < 0 || pi >= n) return;
       const pt = et - k * stagger;
@@ -726,11 +726,11 @@ $("search-box").addEventListener("input", (e) => {
 /* ---------- cold-start showcase ---------- */
 const COLD_QS = [
   { q: "What sounds like your Friday night?",
-    opts: [["Action", "💥"], ["Comedy", "😂"], ["Horror", "🎬"], ["Romance", "💕"]] },
+    opts: ["Action", "Comedy", "Horror", "Romance"] },
   { q: "Pick another vibe",
-    opts: [["Science Fiction", "🚀"], ["Drama", "🎭"], ["Documentary", "🎥"], ["Thriller", "🔪"]] },
+    opts: ["Science Fiction", "Drama", "Documentary", "Thriller"] },
   { q: "One more — what else?",
-    opts: [["Bollywood", "🪔"], ["Sports", "⚾"], ["Animation", "🎨"], ["Crime", "🚔"]] },
+    opts: ["Bollywood", "Sports", "Animation", "Crime"] },
 ];
 let coldPicks = [];
 $("btn-coldstart").addEventListener("click", () => {
@@ -744,8 +744,8 @@ function renderColdQ(i) {
   $("coldstart-body").innerHTML = `
     <h4>✨ Cold start — question ${i + 1} of 3</h4>
     <div class="dp-sub">${esc(step.q)} — 3 answers stand in for months of watch history.</div>
-    <div class="cold-opts">${step.opts.map(([g, e]) =>
-      `<button class="cold-opt" data-g="${esc(g)}"><span style="font-size:22px">${e}</span><br>${esc(g)}</button>`).join("")}</div>
+    <div class="cold-opts">${step.opts.map((g) =>
+      `<button class="cold-opt" data-g="${esc(g)}">${esc(g)}</button>`).join("")}</div>
     ${i > 0 ? `<button class="cold-back" id="cold-back">← back</button>` : ""}`;
   document.querySelectorAll(".cold-opt").forEach((b) =>
     b.addEventListener("click", () => {
@@ -863,7 +863,7 @@ function drawJourney() {
     ctx.fillStyle = "#f5b45a";
     ctx.beginPath(); ctx.arc(mx, my, 6, 0, 7); ctx.fill();
     ctx.font = "11px sans-serif";
-    ctx.fillText("🎭 MASTER AGENT", mx + 11, my + 4);
+    ctx.fillText("MASTER AGENT", mx + 11, my + 4);
   }
   // cluster labels
   ctx.font = "12px sans-serif";
@@ -882,7 +882,7 @@ function drawJourney() {
     ${esc(c.name)} <span class="ct">(${c.size})</span></span>`).join("") +
     `<span class="lg ct">day ${day} · ${n} agents</span>
      <span class="lg"><label style="cursor:pointer"><input type="checkbox" id="trails-cb" ${state.showTrails ? "checked" : ""}> trails</label></span>` +
-    ((j.campaigns || []).length ? `<span class="lg" style="color:var(--amber)">🎭 master agent pulling strings</span>` : "");
+    ((j.campaigns || []).length ? `<span class="lg" style="color:var(--amber)">master agent pulling strings</span>` : "");
   const cb = $("trails-cb");
   if (cb) cb.addEventListener("change", (e) => { state.showTrails = e.target.checked; drawJourney(); });
 }
