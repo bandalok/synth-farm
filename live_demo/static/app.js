@@ -133,6 +133,7 @@ async function refreshStatus() {
     renderCampaigns(state.status.campaigns || []);
     renderCampaignTimeline();
     renderMasterLog(state.status.master_log || []);
+    renderCampaignAnalytics();
   }
   if ($("tab-agents").classList.contains("active")) {
     drawMasterPanel();
@@ -192,6 +193,38 @@ function renderCampaigns(cs) {
 function renderMasterLog(log) {
   $("master-log").innerHTML = log.slice().reverse().map((l) =>
     `<div class="ev"><span class="dim">day ${l.day}</span>${esc(l.text)}</div>`).join("");
+}
+/* ---------- campaign analytics (closed loop) ---------- */
+async function renderCampaignAnalytics() {
+  const box = $("campaign-analytics");
+  let d;
+  try { d = await api("/api/campaign_analytics"); }
+  catch (e) { return; }
+  const rows = d.analytics || [];
+  if (!rows.length) {
+    box.innerHTML = `<p class="sub">No campaigns yet — fire one above and it lands here.</p>`;
+    return;
+  }
+  const liftCell = (v) => v == null ? `<span style="opacity:.5">—</span>`
+    : `<span class="${v >= 0 ? "lift-pos" : "lift-neg"}">${v >= 0 ? "+" : ""}${Math.round(v * 100)}%</span>`;
+  const shiftCell = (v) => v == null ? `<span style="opacity:.5">—</span>`
+    : `<span class="${v >= 0 ? "lift-pos" : "lift-neg"}">${v >= 0 ? "+" : ""}${v}pp</span>`;
+  const statusBadge = (s) => s === "live"
+    ? `<span class="pin" style="color:var(--amber)">● live</span>`
+    : s === "scheduled" ? `<span class="pin">📅 scheduled</span>` : `<span style="opacity:.6">ended</span>`;
+  box.innerHTML = `<table class="analytics-table"><thead><tr>
+    <th>Campaign</th><th>Status</th><th>Targets</th><th>Plays<br>(live window)</th>
+    <th>Baseline</th><th>Lift</th><th>Taste shift</th><th>Clicks</th></tr></thead><tbody>` +
+    rows.map((c) => `<tr>
+      <td><b>${esc(c.genres.map(campLabel).join(" + "))}</b><br><span style="opacity:.65">${esc((c.text || "").slice(0, 60))}</span></td>
+      <td>${statusBadge(c.status)}</td>
+      <td>${c.n_targets}</td>
+      <td>${c.plays_live}</td>
+      <td>${c.plays_baseline}</td>
+      <td>${liftCell(c.lift)}</td>
+      <td>${shiftCell(c.taste_shift_pp)}</td>
+      <td>${c.clicks}</td></tr>`).join("") +
+    `</tbody></table>`;
 }
 /* ---------- campaign timeline (checkbox-gated) ---------- */
 function renderCampaignTimeline() {
@@ -594,6 +627,7 @@ function tasteBars(taste) {
 /* ---------- home screen ---------- */
 $("home-agent-pick").addEventListener("change", (e) => {
   state.homeAgent = e.target.value;
+  state.coldstart = null;
   loadHome();
 });
 async function loadHome() {
@@ -618,7 +652,12 @@ function tileHTML(t) {
   const art = t.poster
     ? `<img loading="lazy" src="${t.poster}" alt="">`
     : `<div class="tile-noposter"><span class="np-emoji">${GENRE_EMOJI[t.genre] || "🎞️"}</span><span class="np-title">${esc(t.title)}</span></div>`;
-  return `<div class="tile" data-id="${t.id}" title="${esc(t.title)}">
+  // Hover "Why this?" tooltip: the native title tooltip is suppressed when
+  // why-data is present so the two don't stack.
+  const why = t.why_hover
+    ? ` data-why="${esc(t.why_hover).replace(/\n/g, "&#10;")}"`
+    : ` title="${esc(t.title)}"`;
+  return `<div class="tile" data-id="${t.id}"${why}>
     ${t.sponsored ? `<span class="spon-badge">Sponsored</span>` : ""}
     ${art}
     <div class="ti"><b>${esc(t.title)}</b><span>${esc(t.genre)}</span>
@@ -683,6 +722,78 @@ $("search-box").addEventListener("input", (e) => {
       }));
   }, 220);
 });
+
+/* ---------- cold-start showcase ---------- */
+const COLD_QS = [
+  { q: "What sounds like your Friday night?",
+    opts: [["Action", "💥"], ["Comedy", "😂"], ["Horror", "🎬"], ["Romance", "💕"]] },
+  { q: "Pick another vibe",
+    opts: [["Science Fiction", "🚀"], ["Drama", "🎭"], ["Documentary", "🎥"], ["Thriller", "🔪"]] },
+  { q: "One more — what else?",
+    opts: [["Bollywood", "🪔"], ["Sports", "⚾"], ["Animation", "🎨"], ["Crime", "🚔"]] },
+];
+let coldPicks = [];
+$("btn-coldstart").addEventListener("click", () => {
+  coldPicks = [];
+  renderColdQ(0);
+  $("coldstart-modal").hidden = false;
+});
+$("coldstart-x").addEventListener("click", () => { $("coldstart-modal").hidden = true; });
+function renderColdQ(i) {
+  const step = COLD_QS[i];
+  $("coldstart-body").innerHTML = `
+    <h4>✨ Cold start — question ${i + 1} of 3</h4>
+    <div class="dp-sub">${esc(step.q)} — 3 answers stand in for months of watch history.</div>
+    <div class="cold-opts">${step.opts.map(([g, e]) =>
+      `<button class="cold-opt" data-g="${esc(g)}"><span style="font-size:22px">${e}</span><br>${esc(g)}</button>`).join("")}</div>
+    ${i > 0 ? `<button class="cold-back" id="cold-back">← back</button>` : ""}`;
+  document.querySelectorAll(".cold-opt").forEach((b) =>
+    b.addEventListener("click", () => {
+      coldPicks[i] = b.dataset.g;
+      if (i < COLD_QS.length - 1) renderColdQ(i + 1);
+      else finishColdstart();
+    }));
+  const back = $("cold-back");
+  if (back) back.addEventListener("click", () => renderColdQ(i - 1));
+}
+async function finishColdstart() {
+  $("coldstart-body").innerHTML = `<h4>✨ Bootstrapping…</h4><div class="dp-sub">Building a taste vector from 3 answers.</div>`;
+  try {
+    const d = await api("/api/coldstart", { method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ picks: coldPicks }) });
+    state.coldstart = d;
+    $("coldstart-modal").hidden = true;
+    renderColdstartHome(d);
+  } catch (e) {
+    $("coldstart-body").innerHTML = `<h4>✨ Cold start failed</h4><div class="dp-sub">Try again.</div>`;
+  }
+}
+function renderColdstartHome(d) {
+  const tops = d.top_genres.slice(0, 3).join(" · ");
+  $("home-hint").innerHTML =
+    `✨ <b>Cold-start preview</b> — bootstrapped from 3 answers (<b>${esc(tops)}</b>), <b>0 minutes</b> of watch history. ` +
+    `Hover any tile for “Why this?”. <button id="cold-exit" class="cold-back">← back to agents</button> ` +
+    `<button id="cold-retake" class="cold-back">retake quiz</button>`;
+  $("rails").innerHTML = d.home_screen.rails.map((r) => `
+    <div class="rail"><h3>${esc(r.title)}${r.why ? ` <span class="why">${esc(r.why)}</span>` : ""}</h3>
+    <div class="tiles">${r.items.map(tileHTML).join("")}</div></div>`).join("");
+  // Preview mode: tiles don't play — the viewer doesn't exist in the sim yet.
+  document.querySelectorAll("#rails .tile").forEach((el) =>
+    el.addEventListener("click", () =>
+      logEvent(`<span class="e-search">✨ preview</span> “${esc(el.title)}” — pick a real agent above to play titles`, true)));
+  $("taste-bars").innerHTML = tasteBars(d.taste);
+  $("cold-exit").addEventListener("click", () => {
+    state.coldstart = null;
+    loadHome();
+  });
+  $("cold-retake").addEventListener("click", () => {
+    state.coldstart = null;
+    coldPicks = [];
+    renderColdQ(0);
+    $("coldstart-modal").hidden = false;
+  });
+}
 
 /* ---------- journey ---------- */
 function startJourney() {
