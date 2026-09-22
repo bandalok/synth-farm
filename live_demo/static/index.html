@@ -54,6 +54,7 @@
     <h2>Personalized home screen</h2>
     <p class="sub">13 collections of 20 titles, ranked live against the selected agent's <i>current</i> taste vector — 29 Gracenote genres plus a dedicated Bollywood axis. Taste rails up top, then trending, new and popular, a deliberate detour outside their usual genres (variety beats fatigue), and the lookalike picks from their cluster. Click any tile and the running simulation records impression → click → play, updates the agent's model, and re-ranks. This is the recommendation loop, executing for real.</p>
     <select class="agent-pick" id="home-agent-pick"></select>
+    <button id="btn-coldstart" class="go-btn" style="margin-left:8px">✨ New viewer cold start</button>
     <div class="search-row">
       <input id="search-box" type="text" placeholder="Search the catalog… (e.g. horror, Reacher, documentary)" autocomplete="off">
     </div>
@@ -91,6 +92,9 @@
     <div class="cards" id="campaigns"></div>
     <label class="tl-toggle"><input type="checkbox" id="camp-timeline-toggle"> 📅 Campaign timeline</label>
     <div id="camp-timeline" hidden></div>
+    <h3 style="margin-top:14px">Campaign analytics</h3>
+    <p class="sub">Closed-loop read from the sim's own event log: plays in the campaign genres during the live window vs. the equal-length baseline before it, taste shift of the targets, and clicks.</p>
+    <div id="campaign-analytics"><p class="sub">No campaigns yet — fire one above and it lands here.</p></div>
     <h3 style="margin-top:14px">Master Agent log</h3>
     <div id="master-log" class="eventlog"></div>
   </section>
@@ -98,6 +102,10 @@
   <div id="explainer" class="explainer" hidden>
     <button class="dp-x" id="explainer-x">×</button>
     <div id="explainer-body"></div>
+  </div>
+  <div id="coldstart-modal" class="explainer" hidden>
+    <button class="dp-x" id="coldstart-x">×</button>
+    <div id="coldstart-body"></div>
   </div>
 </main>
 <div id="agent-page" style="display:none"><div id="agent-page-body"></div></div>
