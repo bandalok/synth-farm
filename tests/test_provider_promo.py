@@ -152,7 +152,9 @@ def test_rail_content_for_targeted_agent():
         assert d["providers"], "every tile needs a non-empty provider list"
         assert "FOX One" in d["providers"]
         assert d.get("why_hover"), "every tile needs a why_hover explanation"
-        assert d.get("promoted") is True
+        # No per-tile "Promoted" badges on the collection: the collection
+        # title itself ("Trending on FoxOne") makes the placement evident.
+        assert not d.get("promoted")
 
 
 def test_no_rail_for_non_targeted_agent():
@@ -477,3 +479,99 @@ def test_frontend_card_glow_conditionals_with_promo_payload():
         "badge must read '🎯 FOX One energy'"
     assert res["preFix"]["cls"] == "" and res["preFix"]["badge"] == "", \
         "pre-fix payload (empty list) never glowed — the documented bug"
+
+
+# ---------- 10. Search placement ----------
+
+def _paid_tile(results):
+    paid = [d for d in results if d.get("promoted") or d.get("sponsored")]
+    return paid
+
+
+def test_search_fox_one_shows_promoted_tile_no_agent():
+    """Agent-less search for 'fox one' with a live campaign: exactly one
+    paid tile, tagged Promoted (not Sponsored), from the FOX One titles."""
+    sim = make_sim()
+    camp = start_promo(sim)
+    results = sim.search("fox one")
+    paid = _paid_tile(results)
+    assert len(paid) == 1, "exactly one paid search tile"
+    tile = paid[0]
+    assert tile.get("promoted") is True
+    assert tile.get("sponsored") is False
+    assert tile["title"] in EXPECTED_FOX_ONE_TITLES
+    assert "FOX One" in tile["providers"]
+
+
+@pytest.mark.parametrize("alias", ["foxone", "fox-one", "fox 1", "FOX ONE"])
+def test_search_provider_aliases_show_promoted_tile(alias):
+    sim = make_sim()
+    start_promo(sim)
+    paid = _paid_tile(sim.search(alias))
+    assert len(paid) == 1
+    assert paid[0].get("promoted") is True
+    assert paid[0]["title"] in EXPECTED_FOX_ONE_TITLES
+
+
+def test_search_promoted_tile_for_targeted_agent():
+    sim = make_sim()
+    camp = start_promo(sim)
+    assert camp["targets"], "test needs at least one targeted agent"
+    pi = next(iter(camp["targets"]))
+    pid = sim.personas[pi].persona_id
+    paid = _paid_tile(sim.search("fox one", pid))
+    assert len(paid) == 1
+    assert paid[0].get("promoted") is True
+    # A search view of the promo counts as a same-day impression.
+    assert (pi, sim.day) in camp["impressions"]
+
+
+def test_search_no_promoted_tile_for_non_targeted_agent():
+    sim = make_sim()
+    camp = start_promo(sim)
+    non_targets = [i for i in range(sim.n_agents) if i not in camp["targets"]]
+    assert non_targets
+    pid = sim.personas[non_targets[0]].persona_id
+    paid = _paid_tile(sim.search("fox one", pid))
+    assert paid == [], "non-targets never see the promo placement"
+
+
+def test_search_unrelated_query_keeps_sponsored_pick():
+    """A non-provider query keeps the generic Sponsored tile — the promo
+    never leaks into unrelated searches."""
+    sim = make_sim()
+    start_promo(sim)
+    results = sim.search("comedy")
+    paid = _paid_tile(results)
+    assert len(paid) == 1, "still exactly one paid search tile"
+    assert paid[0].get("sponsored") is True
+    assert paid[0].get("promoted") is False
+
+
+def test_search_fox_one_without_campaign_has_no_paid_tile():
+    sim = make_sim()
+    results = sim.search("fox one")
+    assert _paid_tile(results) == []
+    assert results == [], "no organic title matches 'fox one' either"
+
+
+def test_search_no_promoted_tile_after_campaign_stopped():
+    """Once the campaign is stopped, 'fox one' searches lose the promo
+    placement (the campaign list is empty, so the generic path runs)."""
+    sim = make_sim()
+    start_promo(sim)
+    assert _paid_tile(sim.search("fox one")), "sanity: promo shows while live"
+    sim.direct("stop campaigns")
+    assert _paid_tile(sim.search("fox one")) == []
+
+
+def test_search_promoted_tile_title_is_deterministic():
+    """The promoted title is the campaign's top-popularity pinned title —
+    stable across repeated searches."""
+    sim = make_sim()
+    camp = start_promo(sim)
+    pinned = [sim.by_id[tid] for tid in camp["titles"] if tid in sim.by_id]
+    expected = max(pinned, key=lambda it: it.popularity).title
+    for _ in range(5):
+        paid = _paid_tile(sim.search("fox one"))
+        assert paid[0]["title"] == expected

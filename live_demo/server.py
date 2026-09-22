@@ -1232,7 +1232,6 @@ class LiveSim:
             k_unseen_pop = lambda it: (it.item_id in unseen, it.popularity)
             items = row(pinned, k_unseen_pop, want=len(pinned))
             for d in items:
-                d["promoted"] = True
                 it = self.by_id.get(d["id"])
                 if it is not None:
                     d["why_hover"] = self._why_hover(pi, taste, rank_taste, it)
@@ -1431,10 +1430,12 @@ class LiveSim:
     def search(self, q: str, persona_id: str | None = None, n: int = 12) -> list[dict]:
         ql = q.lower().strip()
         taste = None
+        pidx = None
         if persona_id:
             p = next((pp for pp in self.personas if pp.persona_id == persona_id), None)
             if p is not None:
-                taste = self.tastes[self.personas.index(p)]
+                pidx = self.personas.index(p)
+                taste = self.tastes[pidx]
         scored = []
         for it in self.catalog.items:
             hay = f"{it.title} {it.primary_genre}".lower()
@@ -1445,17 +1446,44 @@ class LiveSim:
             boost = 2.0 if it.title.lower().startswith(ql) else (1.0 if ql in it.title.lower() else 0.0)
             scored.append((boost, s, it))
         scored.sort(key=lambda t: (-t[0], -t[1], t[2].item_id))
-        # Sponsored search: exactly one slot. The highest-popularity match for
-        # the query is tagged "Sponsored" and inserted at a random position
-        # among slots 2-4 (never first), ahead of the personalized organic
-        # ranking. The sponsored title is deterministic per query; only the
-        # slot is randomized.
-        out = []
-        if scored:
+        # Paid search slot: exactly one. While a provider_promo campaign is
+        # live and the query names its provider ("fox one", "foxone", ...),
+        # the slot goes to the campaign's top-popularity pinned title,
+        # tagged "Promoted" instead of "Sponsored". Shown to the campaign's
+        # targeted agents (or when no agent is viewing); every other query
+        # keeps the generic Sponsored pick. The paid title is deterministic
+        # per query; only the slot is randomized (never first).
+        paid_item, paid_score, paid_promoted = None, 0.0, False
+        paid_camp = None
+        if ql:
+            for kw, app in PROVIDER_PROMO_KEYWORDS.items():
+                if kw not in ql:
+                    continue
+                for camp in self.campaigns:
+                    if (camp.get("campaign_type") != "provider_promo"
+                            or camp.get("provider") != app
+                            or not self._camp_active(camp)):
+                        continue
+                    if pidx is not None and pidx not in camp.get("targets", ()):
+                        continue
+                    pinned = [self.by_id[tid] for tid in camp.get("titles", ())
+                              if tid in self.by_id]
+                    if pinned:
+                        paid_item = max(pinned, key=lambda it: it.popularity)
+                        paid_camp = camp
+                        paid_promoted = True
+                    break
+                if paid_item is not None:
+                    break
+        if paid_item is None and scored:
             spon = max(scored, key=lambda t: t[2].popularity)
-            d = self._item_json(spon[2], spon[1])
-            d["sponsored"] = True
-            rest = [t for t in scored if t[2] is not spon[2]]
+            paid_item, paid_score = spon[2], spon[1]
+        out = []
+        if paid_item is not None:
+            d = self._item_json(paid_item, paid_score)
+            d["promoted"] = paid_promoted
+            d["sponsored"] = not paid_promoted
+            rest = [t for t in scored if t[2] is not paid_item]
             organics = [self._item_json(it, s) for _, s, it in rest[:n - 1]]
             if organics:
                 pos = random.randint(1, min(3, len(organics)))
@@ -1463,6 +1491,10 @@ class LiveSim:
                 out = organics[:n]
             else:
                 out = [d]
+            if paid_camp is not None and pidx is not None:
+                # A search view of the promo counts as a same-day impression,
+                # like the rail view does, so conversions stay attributable.
+                paid_camp["impressions"].add((pidx, self.day))
         return out
 
     # -- main loop --------------------------------------------------------------
