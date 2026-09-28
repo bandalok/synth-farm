@@ -1,3 +1,5 @@
+[![CI](https://github.com/bandalok/synth-farm/actions/workflows/ci.yml/badge.svg)](https://github.com/bandalok/synth-farm/actions/workflows/ci.yml)
+
 # synth-farm
 
 A persona-driven synthetic user farm for cold-start recommender systems.
