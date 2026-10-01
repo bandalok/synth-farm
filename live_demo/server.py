@@ -2139,7 +2139,7 @@ class Handler(BaseHTTPRequestHandler):
 def main():
     global STATIC_DIR
     ap = argparse.ArgumentParser(description="Synth Farm live demo server")
-    ap.add_argument("--port", type=int, default=8000)
+    ap.add_argument("--port", type=int, default=int(os.environ.get("PORT", 8000)))
     ap.add_argument("--tick", type=float, default=1.5,
                     help="seconds per simulated day")
     ap.add_argument("--agents", type=int, default=240)
@@ -2147,14 +2147,13 @@ def main():
     ap.add_argument("--static", default=None)
     args = ap.parse_args()
 
-    import os
     STATIC_DIR = args.static or os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                              "static")
     sim = LiveSim(n_agents=args.agents, seed=args.seed, tick_seconds=args.tick)
     Handler.sim = sim
     t = threading.Thread(target=sim.loop, daemon=True)
     t.start()
-    srv = ThreadingHTTPServer(("127.0.0.1", args.port), Handler)
+    srv = ThreadingHTTPServer(("0.0.0.0", args.port), Handler)
     print(f"Synth Farm LIVE  →  http://localhost:{args.port}")
     print(f"  {args.agents} agents, 1 tick = 1 simulated day every {args.tick}s. Press Play.")
     try:
