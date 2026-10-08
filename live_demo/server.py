@@ -3078,6 +3078,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self._static("app.js", "text/javascript; charset=utf-8")
             if route == "/styles.css":
                 return self._static("styles.css", "text/css; charset=utf-8")
+            if route == "/VERSION":
+                return self._static("VERSION", "text/plain; charset=utf-8")
             if route.startswith("/logos/"):
                 name = route[len("/logos/"):]
                 # logos only: no path traversal, svg/png only
