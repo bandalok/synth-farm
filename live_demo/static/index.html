@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Synth Farm — LIVE</title>
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<header>
+  <div class="logo">AI AGENTS <span>FARM</span></div>
+  <div class="live-badge"><span class="dot"></span>live</div>
+  <div class="controls">
+    <button id="btn-play" class="primary">▶ Play</button>
+    <button id="btn-step-back" title="Back one day (paused)">◀</button>
+    <button id="btn-step-fwd" title="Forward one day (paused)">▶</button>
+    <button id="btn-reset">Reset</button>
+    <select id="sel-speed" title="sim speed">
+      <option value="2.5">Slow</option>
+      <option value="1.5" selected>Normal</option>
+      <option value="0.6">Fast</option>
+      <option value="0.25">Ludicrous</option>
+    </select>
+    <div class="day-counter" id="day-counter" title="Pause / resume the simulation">DAY <b id="day-num">0</b></div>
+  </div>
+</header>
+<div id="ticker"><span class="ev">Simulation idle — press <b>Play</b> to start the agents.</span></div>
+<nav class="tabs">
+  <button data-tab="clusters" class="active">Clusters</button>
+  <button data-tab="agents">Agents</button>
+  <button data-tab="home">Home Screen</button>
+  <button data-tab="journey">Agent Cluster</button>
+  <button data-tab="master">Master Agent</button>
+  <button data-tab="collections">Collections</button>
+</nav>
+<main>
+  <section id="tab-clusters" class="tab active">
+    <h2>Viewer clusters</h2>
+    <p class="sub">20 taste clusters emerging live from the running simulation. Sizes shift as agents watch, search, and drift. These are recomputed from the agents' actual taste vectors every simulated day.</p>
+    <div class="cards" id="cluster-cards"></div>
+  </section>
+
+  <section id="tab-agents" class="tab">
+    <h2>Agents</h2>
+    <p class="sub">Every agent is a synthetic viewer with a live data model: taste vector, behavior parameters, subscriptions, and a growing event history. <b>Click any agent to open its data-model page</b> — what the platform knows about the viewer, and exactly how it learned it.</p>
+    <div class="master-panel">
+      <div id="master-target-note" class="master-target-note" style="display:none"></div>
+      <canvas id="master-canvas"></canvas>
+      <div class="master-legend">The Master Agent holds every agent's string — <span style="color:var(--amber)">bright strings</span> + <span style="color:#4ade80">green rings</span> are live campaign targets, the <span style="color:var(--amber)">amber ring</span> is the ★ Bollywood pivot</div>
+    </div>
+    <div class="cards" id="agent-cards"></div>
+  </section>
+
+  <section id="tab-home" class="tab">
+    <h2>Personalized home screen</h2>
+    <p class="sub">13 collections of 20 titles, ranked live against the selected agent's <i>current</i> taste vector — 29 Gracenote genres plus a dedicated Bollywood axis. Taste rails up top, then trending, new and popular, a deliberate detour outside their usual genres (variety beats fatigue), and the lookalike picks from their cluster. Click any tile and the running simulation records impression → click → play, updates the agent's model, and re-ranks. This is the recommendation loop, executing for real.</p>
+    <select class="agent-pick" id="home-agent-pick"></select>
+    <button id="btn-coldstart" class="go-btn" style="margin-left:8px">✨ New viewer cold start</button>
+    <div class="search-row">
+      <input id="search-box" type="text" placeholder="Search the catalog… (e.g. horror, Reacher, documentary)" autocomplete="off">
+    </div>
+    <div id="trending-searches" style="display:none" class="trend-row"></div>
+    <div id="search-results" style="display:none" class="rail">
+      <h3>Search results</h3>
+      <div class="tiles" id="search-tiles"></div>
+    </div>
+    <div class="hint" id="home-hint">Pick an agent above, then click any tile — <b>watch their taste bars move</b> below.</div>
+    <div id="rails"></div>
+    <h3 style="margin-top:8px">Agent's live taste vector</h3>
+    <div id="taste-bars" style="max-width:640px"></div>
+    <h3 style="margin-top:14px">Event log</h3>
+    <div id="eventlog"></div>
+  </section>
+
+  <section id="tab-journey" class="tab">
+    <h2>Agent Cluster: from cold start to clusters</h2>
+    <p class="sub">Day 0: 240 new viewers, near-identical taste — one crowd. Every simulated day they watch TV and search; their taste follows what they consume, and crowds pull toward their own. Dots are agents, colored by emergent cluster — click any dot to open that agent's data-model page. This is happening live — press Play and watch them walk apart.</p>
+    <div id="journey-wrap"><canvas id="journey-canvas"></canvas>
+      <div id="dot-pop" class="dot-pop" hidden></div>
+    </div>
+    <div class="journey-legend" id="journey-legend"></div>
+  </section>
+
+  <section id="tab-master" class="tab">
+    <h2>Master Agent</h2>
+    <p class="sub">The puppet master. Give it a plain-English directive — <i>“NFL is starting, pivot some users to football for 7 days”</i> — and it spins up a time-limited campaign that steers the targeted agents' watching toward those genres. Campaigns decay automatically; <i>“stop campaigns”</i> kills them all. Targets: <i>some / half / all / 30% / cluster 3</i>.</p>
+    <div class="search-row">
+      <input id="master-input" type="text" placeholder="Pivot some users to football for 7 days… (or tap a preset below)" autocomplete="off">
+      <button id="master-go" class="go-btn">Command</button>
+    </div>
+    <div class="sugg-row" id="master-sugg"></div>
+    <div class="hint" id="master-msg">No directive yet — try one above.</div>
+    <nav class="ma-subnav" id="ma-subnav">
+      <button data-sec="collections" class="active">Collections</button>
+      <button data-sec="apps">Apps campaign</button>
+      <button data-sec="calendar">Calendar</button>
+      <button data-sec="featured">Featured row</button>
+      <button data-sec="search">Search boost</button>
+      <button data-sec="takeover">Takeover</button>
+    </nav>
+    <div class="ma-sec" id="ma-collections">
+      <h3>Collections management</h3>
+      <p class="sub">Rows 1-3 are fixed. The rest rotate through the home screen — use Hide to pull one from rotation.</p>
+      <div id="rail-list"></div>
+      <button id="rail-reset" class="ghost-btn">Reset to dynamic order</button>
+    </div>
+    <div class="ma-sec" id="ma-ai-seasonal">
+      <h3>AI recommended collections based on seasonality</h3>
+      <p class="sub">Candidates proposed by the master AI. Approve to add one to the rotation pool.</p>
+      <div id="ai-seasonal-list"></div>
+    </div>
+    <div class="ma-sec" id="ma-apps" hidden>
+      <h3>Apps campaign</h3>
+      <p class="sub">Run a subscription push for any app — targeted at agents who don't have it yet.</p>
+      <div class="form-row">
+        <label>App <select id="appcamp-app"></select></label>
+        <label>Reach <select id="appcamp-coverage">
+          <option value="0.25">Some (25%)</option>
+          <option value="0.5">Half (50%)</option>
+          <option value="1">All (100%)</option>
+        </select></label>
+        <label>Days <input id="appcamp-days" type="number" value="7" min="1" max="60"></label>
+        <button id="appcamp-go" class="go-btn">Launch app campaign</button>
+      </div>
+      <div class="form-row place-row">
+        <span class="place-label">Promote on:</span>
+        <label class="place-check"><input type="checkbox" id="appcamp-place-collection" checked> Collection</label>
+        <label class="place-check"><input type="checkbox" id="appcamp-place-search"> Search</label>
+        <label class="place-check"><input type="checkbox" id="appcamp-place-featured"> Featured</label>
+      </div>
+      <div class="hint" id="appcamp-msg"></div>
+      <h3 style="margin-top:10px">Recommended campaign</h3>
+      <div class="cards" id="recommendation"></div>
+    </div>
+    <div class="ma-sec" id="ma-calendar" hidden>
+      <h3>Calendar — US tentpoles</h3>
+      <p class="sub">Plan campaigns around the moments America watches together. Pick an event to prefill the command box above, or schedule below.</p>
+      <div id="tentpole-list"></div>
+      <h3 style="margin-top:10px">Scheduled campaigns</h3>
+      <div id="scheduled-list"><p class="sub">None scheduled.</p></div>
+    </div>
+    <div class="ma-sec" id="ma-featured" hidden>
+      <h3>Featured row campaign</h3>
+      <p class="sub">Pin titles into the Featured row of targeted agents' home screens.</p>
+      <div id="feat-picker"></div>
+      <div class="form-row">
+        <label>Reach <select id="feat-coverage">
+          <option value="0.25">Some (25%)</option>
+          <option value="0.5">Half (50%)</option>
+          <option value="1">All (100%)</option>
+        </select></label>
+        <label>Days <input id="feat-days" type="number" value="7" min="1" max="60"></label>
+        <button id="feat-go" class="go-btn">Launch featured campaign</button>
+      </div>
+      <div class="hint" id="feat-msg"></div>
+    </div>
+    <div class="ma-sec" id="ma-search" hidden>
+      <h3>Search results campaign</h3>
+      <p class="sub">Boost titles to the top of search results for targeted agents. Boosts only fire when the search text relates to the title. Boosted titles also appear as Promoted terms in trending searches.</p>
+      <div id="search-picker"></div>
+      <div class="form-row">
+        <label>Reach <select id="searchcamp-coverage">
+          <option value="0.25">Some (25%)</option>
+          <option value="0.5">Half (50%)</option>
+          <option value="1">All (100%)</option>
+        </select></label>
+        <label>Days <input id="searchcamp-days" type="number" value="7" min="1" max="60"></label>
+        <button id="searchcamp-go" class="go-btn">Launch search campaign</button>
+      </div>
+      <div class="hint" id="searchcamp-msg"></div>
+    </div>
+    <div class="ma-sec" id="ma-takeover" hidden>
+      <h3>Screen takeover campaign</h3>
+      <p class="sub">A full-screen promo that greets targeted agents on their home screen.</p>
+      <div id="takeover-picker"></div>
+      <div class="form-row">
+        <label style="flex:1">Headline <input id="takeover-headline" type="text" placeholder="Don't miss the premiere…" style="width:100%"></label>
+      </div>
+      <div class="form-row">
+        <label style="flex:1">Sponsor (optional) <input id="takeover-sponsor" type="text" placeholder="Coca-Cola" style="width:100%"></label>
+      </div>
+      <div class="form-row">
+        <label>Reach <select id="takeover-coverage">
+          <option value="0.25">Some (25%)</option>
+          <option value="0.5">Half (50%)</option>
+          <option value="1">All (100%)</option>
+        </select></label>
+        <label>Days <input id="takeover-days" type="number" value="7" min="1" max="60"></label>
+        <button id="takeover-go" class="go-btn">Launch takeover</button>
+      </div>
+      <div class="hint" id="takeover-msg"></div>
+    </div>
+    <h3 style="margin-top:10px">Live campaigns</h3>
+    <div class="cards" id="campaigns"></div>
+    <label class="tl-toggle"><input type="checkbox" id="camp-timeline-toggle"> 📅 Campaign timeline</label>
+    <div id="camp-timeline" hidden></div>
+    <h3 style="margin-top:14px">Campaign analytics</h3>
+    <p class="sub">Closed-loop read from the sim's own event log: plays in the campaign genres during the live window vs. the equal-length baseline before it, taste shift of the targets, and clicks.</p>
+    <div id="campaign-analytics"><p class="sub">No campaigns yet — fire one above and it lands here.</p></div>
+    <h3 style="margin-top:14px">Sponsor ROI</h3>
+    <p class="sub">Takeover performance for brand sponsors: views, watch through, and dismissal rate.</p>
+    <div id="sponsor-roi"><p class="sub">No takeover campaigns yet.</p></div>
+    <h3 style="margin-top:14px">Master Agent log</h3>
+    <div id="master-log" class="eventlog"></div>
+  </section>
+
+  <section id="tab-collections" class="tab">
+    <h2>Collections management</h2>
+    <p class="sub">The official rotation pool and AI-generated candidates. Featured, Apps and Continue watching are pinned to the top of every home screen. The rest rotate through the remaining rows — deprecate or remove any collection to pull it from rotation. AI candidates need a human approve before joining the official pool.</p>
+
+    <h3 class="coll-h">Official collections <span class="coll-count" id="coll-official-count"></span></h3>
+    <div id="coll-fixed" class="coll-grid"></div>
+    <div id="coll-official" class="coll-grid"></div>
+    <div id="coll-removed-wrap" style="display:none">
+      <h3 class="coll-h">Removed <span class="coll-count" id="coll-removed-count"></span></h3>
+      <div id="coll-removed" class="coll-grid"></div>
+    </div>
+
+    <h3 class="coll-h">AI generated collections <span class="coll-count" id="coll-ai-count"></span></h3>
+    <p class="sub">Candidates proposed by the recommendation engine. Each ships with the AI's reasoning — approve to promote it into the official rotation pool, or reject to dismiss it.</p>
+    <div id="coll-ai" class="coll-grid"></div>
+  </section>
+
+  <div id="explainer" class="explainer" hidden>
+    <button class="dp-x" id="explainer-x">×</button>
+    <div id="explainer-body"></div>
+  </div>
+  <div id="coldstart-modal" class="explainer" hidden>
+    <button class="dp-x" id="coldstart-x">×</button>
+    <div id="coldstart-body"></div>
+  </div>
+</main>
+<div id="agent-page" style="display:none"><div id="agent-page-body"></div></div>
+<script src="/app.js?v=20261004e"></script>
+</body>
+</html>
