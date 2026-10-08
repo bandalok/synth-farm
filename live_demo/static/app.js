@@ -1445,6 +1445,13 @@ async function refreshAll() {
   if ($("tab-journey").classList.contains("active")) fetchJourney();
 }
 (async function boot() {
+  // Set build version
+  try {
+    const vr = await fetch('VERSION');
+    const vv = (await vr.text()).trim();
+    const vel = document.getElementById('build-ver');
+    if (vel) vel.textContent = 'v' + vv;
+  } catch(e) {}
   connectStream();
   initJourneyClicks();
   await refreshAll();
