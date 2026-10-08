@@ -1450,7 +1450,8 @@ async function refreshAll() {
     const vr = await fetch('VERSION');
     const vv = (await vr.text()).trim();
     const vel = document.getElementById('build-ver');
-    if (vel) vel.textContent = 'v' + vv;
+    // Only show if it looks like a version (not an HTML error page)
+    if (vel && vr.ok && /^[0-9]+\.[0-9.]+$/.test(vv)) vel.textContent = 'v' + vv;
   } catch(e) {}
   connectStream();
   initJourneyClicks();
